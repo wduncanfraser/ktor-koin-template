@@ -1,0 +1,12 @@
+ktor:
+  application:
+    modules:
+      - com.example.ApplicationKt.module
+  deployment:
+    port: 8080
+    banner: "ASDF"
+database:
+  url: "jdbc:postgresql://localhost:5432/todo"
+  user: todo
+  password: todo
+  poolSize: 20

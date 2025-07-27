@@ -1,0 +1,90 @@
+[versions]
+cohort = "2.7.2"
+detekt = "1.23.8"
+fabrikt = "23.0.0"
+hikari = "6.3.0"
+jooq = "3.20.5"
+koin = "4.1.0"
+kotlin = "2.2.0"
+kotlin-logging = "7.0.7"
+kotlin-result = "2.0.1"
+kotlinx-datetime = "0.7.1-0.6.x-compat"
+ktor = "3.2.2"
+logback = "1.5.18"
+micrometer = "1.15.2"
+postgresql = "42.7.7"
+
+[libraries]
+cohort-hikari = { module = "com.sksamuel.cohort:cohort-hikari", version.ref = "cohort" }
+cohort-ktor = { module = "com.sksamuel.cohort:cohort-ktor", version.ref = "cohort" }
+cohort-micrometer = { module = "com.sksamuel.cohort:cohort-micrometer", version.ref = "cohort" }
+fabrikt = { module = "com.cjbooms:fabrikt", version.ref = "fabrikt" }
+hikari = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+jooq-kotlin = { module = "org.jooq:jooq-kotlin", version.ref = "jooq" }
+jooq-kotlin-coroutines = { module = "org.jooq:jooq-kotlin-coroutines", version.ref = "jooq" }
+koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
+koin-core = { module = "io.insert-koin:koin-core" }
+koin-ktor = { module = "io.insert-koin:koin-ktor" }
+koin-logger-slf4j = { module = "io.insert-koin:koin-logger-slf4j" }
+kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
+kotlin-result = { module = "com.michael-bull.kotlin-result:kotlin-result", version.ref = "kotlin-result" }
+kotlin-result-coroutines = { module = "com.michael-bull.kotlin-result:kotlin-result-coroutines", version.ref = "kotlin-result" }
+kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+ktor-serialization = { module = "io.ktor:ktor-serialization-kotlinx-json" }
+ktor-server-call-id = { module = "io.ktor:ktor-server-call-id" }
+ktor-server-call-logging = { module = "io.ktor:ktor-server-call-logging" }
+ktor-server-config-yaml = { module = "io.ktor:ktor-server-config-yaml" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation" }
+ktor-server-core = { module = "io.ktor:ktor-server-core" }
+ktor-server-cors = { module = "io.ktor:ktor-server-cors" }
+ktor-server-metrics-micrometer = { module = "io.ktor:ktor-server-metrics-micrometer" }
+ktor-server-netty = { module = "io.ktor:ktor-server-netty" }
+ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+
+[bundles]
+cohort = [
+    "cohort-hikari",
+    "cohort-ktor",
+    "cohort-micrometer",
+]
+
+jooq = [
+    "jooq-kotlin",
+    "jooq-kotlin-coroutines",
+]
+
+koin = [
+    "koin-core",
+    "koin-logger-slf4j",
+    "koin-ktor",
+]
+
+kotlin-result = [
+    "kotlin-result",
+    "kotlin-result-coroutines",
+]
+
+ktor-server = [
+    "ktor-serialization",
+    "ktor-server-call-id",
+    "ktor-server-call-logging",
+    "ktor-server-config-yaml",
+    "ktor-server-content-negotiation",
+    "ktor-server-core",
+    "ktor-server-cors",
+    "ktor-server-metrics-micrometer",
+    "ktor-server-netty",
+    "ktor-server-status-pages",
+]
+
+[plugins]
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+jooq-codegen = { id = "org.jooq.jooq-codegen-gradle", version.ref = "jooq" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }

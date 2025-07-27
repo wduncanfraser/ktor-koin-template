@@ -1,0 +1,299 @@
+---
+openapi: "3.0.3"
+info:
+  version: 0.1.0
+  title: Todo
+  description: Todo API for Ktor Template
+security:
+  - AuthJWT: []  # required for all paths
+servers:
+  - url: 'http://localhost:8080/api/v1'
+    description: Local Development server
+paths:
+  /todos:
+    get:
+      summary: List all todos
+      operationId: listTodos
+      tags:
+        - Todos
+      parameters:
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/PageNumber"
+        - $ref: "#/components/parameters/Completed"
+      responses:
+        '200':
+          $ref: "#/components/responses/ListTodosResponse"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+    post:
+      summary: Create a todo
+      operationId: createTodo
+      tags:
+        - Todos
+      requestBody:
+        required: true
+        description: The request body for creating a Todo.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoRequest'
+      responses:
+        '201':
+          description: Todo was created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+  /todos/{todo-id}:
+    put:
+      summary: Update a todo
+      operationId: updateTodo
+      tags:
+        - Todos
+      parameters:
+        - $ref: "#/components/parameters/TodoId"
+      requestBody:
+        required: true
+        description: The request body for updating a Todo.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTodoRequest'
+      responses:
+        '200':
+          description: Todo was updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '404':
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Delete a todo
+      operationId: deleteTodo
+      tags:
+        - Todos
+      parameters:
+        - $ref: "#/components/parameters/TodoId"
+      responses:
+        '204':
+          description: Todo was deleted successfully.
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '404':
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    TodoId:
+      name: todo-id
+      in: path
+      description: The unique identifier of the Todo.
+      required: true
+      schema:
+        type: string
+
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: The number of items to return in a single request.
+
+    PageNumber:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: The page number of results to return.
+
+    Completed:
+      name: completed
+      in: query
+      required: false
+      schema:
+        type: boolean
+      description: Filter for todos to only list completed vs incomplete records.
+
+  responses:
+    BadRequest:
+      description: Bad Request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    UnexpectedError:
+      description: An unexpected error occurred when processing the request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    NotFound:
+      description: The specified resource was not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    ListTodosResponse:
+      description: The list of Todos with pagination metadata.
+      content:
+        application/json:
+          schema:
+            required:
+              - data
+              - pagination
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TodoResponse'
+              pagination:
+                $ref: '#/components/schemas/PaginationMetadata'
+
+  securitySchemes:
+    AuthJWT:
+      description: |-
+        Standard JWT Bearer authentication.
+        Usage format: `Bearer <TOKEN>`.
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Common Schemas
+    ProblemDetails:
+      type: object
+      description: RFC 9457 compliant error response
+      required:
+      - type
+      - title
+      - status
+      - detail
+      - instance
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: URI reference identifying the problem type.
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+        status:
+          type: integer
+          description: HTTP status code for this error occurrence.
+        detail:
+          type: string
+          description: Explanation specific to this occurrence of the problem.
+        instance:
+          type: string
+          format: uri-reference
+          description: URI reference identifying the specific occurrence of the problem.
+
+    PaginationMetadata:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalPages
+        - totalRows
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        totalPages:
+          type: integer
+          example: 100
+        totalRows:
+          type: integer
+          example: 1000
+      description: Paginated Results with metadata describing the page
+
+    # Models
+    TodoResponse:
+      type: object
+      description: A todo item.
+      required:
+        - id
+        - name
+        - completed
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        name:
+          $ref: '#/components/schemas/TodoName'
+        completed:
+          type: boolean
+          description: Is the Todo completed.
+        completedAt:
+          type: string
+          description: Date and time when the Todo was marked completed.
+          format: date-time
+        createdAt:
+          $ref: '#/components/schemas/CreatedAt'
+        updatedAt:
+          $ref: '#/components/schemas/UpdatedAt'
+      example:
+        id: e3c205bd-7293-4fe0-9da9-8279a0e54ab1
+        name: Cook dinner
+        completedAt: 2020-01-13T09:25:56Z
+        createdAt: 2019-08-24T14:15:22Z
+        updatedAt: 2020-01-13T09:25:56Z
+
+    CreateTodoRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          $ref: '#/components/schemas/TodoName'
+
+    UpdateTodoRequest:
+      type: object
+      required:
+        - name
+        - completed
+      properties:
+        name:
+          $ref: '#/components/schemas/TodoName'
+        completed:
+          type: boolean
+          description: Is the Todo completed.
+
+
+    # Fields
+    TodoName:
+      type: string
+      description: The name of the Todo.
+      example: Cook dinner
+      minLength: 1
+
+    CreatedAt:
+      type: string
+      description: Date and time which is set automatically when the resource is created.
+      format: date-time
+      example: 2019-08-24T14:15:22Z
+
+    UpdatedAt:
+      type: string
+      description: Date and time which updates automatically when the resource is updated.
+      format: date-time
+      example: 2020-01-13T09:25:56Z
