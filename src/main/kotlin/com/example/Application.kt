@@ -12,6 +12,7 @@ import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 
@@ -43,6 +44,7 @@ fun Application.module() {
     warmupDatabase()
 
     routing {
+        swaggerUI(path = "swagger", swaggerFile = "openapi/todo.yaml")
         apiRoutes()
     }
 }
