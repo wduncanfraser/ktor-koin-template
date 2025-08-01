@@ -2,14 +2,16 @@
 cohort = "2.7.2"
 detekt = "1.23.8"
 fabrikt = "23.0.0"
-hikari = "6.3.0"
+hikari = "7.0.0"
 jooq = "3.20.5"
 koin = "4.1.0"
 kotlin = "2.2.0"
 kotlin-logging = "7.0.7"
 kotlin-result = "2.0.1"
+kotlinx-coroutines = "1.10.2"
 kotlinx-datetime = "0.7.1-0.6.x-compat"
-ktor = "3.2.2"
+ktor = "3.2.3"
+lettuce = "6.7.1.RELEASE"
 logback = "1.5.18"
 micrometer = "1.15.2"
 postgresql = "42.7.7"
@@ -30,8 +32,14 @@ kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.re
 kotlin-result = { module = "com.michael-bull.kotlin-result:kotlin-result", version.ref = "kotlin-result" }
 kotlin-result-coroutines = { module = "com.michael-bull.kotlin-result:kotlin-result-coroutines", version.ref = "kotlin-result" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version = "kotlinx-coroutines" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+ktor-client-apache5 = { module = "io.ktor:ktor-client-apache5" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation" }
+ktor-client-core = { module = "io.ktor:ktor-client-core" }
 ktor-serialization = { module = "io.ktor:ktor-serialization-kotlinx-json" }
+ktor-server-auth = { module = "io.ktor:ktor-server-auth" }
 ktor-server-call-id = { module = "io.ktor:ktor-server-call-id" }
 ktor-server-call-logging = { module = "io.ktor:ktor-server-call-logging" }
 ktor-server-config-yaml = { module = "io.ktor:ktor-server-config-yaml" }
@@ -40,9 +48,11 @@ ktor-server-core = { module = "io.ktor:ktor-server-core" }
 ktor-server-cors = { module = "io.ktor:ktor-server-cors" }
 ktor-server-metrics-micrometer = { module = "io.ktor:ktor-server-metrics-micrometer" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty" }
+ktor-server-sessions = { module = "io.ktor:ktor-server-sessions" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages" }
 ktor-server-swagger = { module = "io.ktor:ktor-server-swagger" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host" }
+lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
@@ -70,8 +80,20 @@ kotlin-result = [
     "kotlin-result-coroutines",
 ]
 
+kotlinx-coroutines = [
+    "kotlinx-coroutines-core",
+    "kotlinx-coroutines-reactive",
+]
+
+ktor-client = [
+    "ktor-client-apache5",
+    "ktor-client-content-negotiation",
+    "ktor-client-core",
+]
+
 ktor-server = [
     "ktor-serialization",
+    "ktor-server-auth",
     "ktor-server-call-id",
     "ktor-server-call-logging",
     "ktor-server-config-yaml",
@@ -80,6 +102,7 @@ ktor-server = [
     "ktor-server-cors",
     "ktor-server-metrics-micrometer",
     "ktor-server-netty",
+    "ktor-server-sessions",
     "ktor-server-status-pages",
     "ktor-server-swagger",
 ]

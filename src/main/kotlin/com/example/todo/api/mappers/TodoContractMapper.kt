@@ -1,7 +1,7 @@
 package com.example.todo.api.mappers
 
 import com.example.core.api.mappers.PaginationContractMapper
-import com.example.core.models.Page
+import com.example.core.domain.Page
 import com.example.generated.api.models.CreateTodoRequestContract
 import com.example.generated.api.models.ListTodosResponseContract
 import com.example.generated.api.models.TodoResponseContract

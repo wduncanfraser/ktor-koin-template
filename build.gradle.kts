@@ -45,13 +45,18 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.bundles.koin)
     // Ktor
+    implementation(libs.bundles.ktor.client)
     implementation(libs.bundles.ktor.server)
+    // Coroutines
+    implementation(libs.bundles.kotlinx.coroutines)
     // Database
     implementation(libs.hikari)
     implementation(libs.bundles.jooq)
     libs.postgresql
         .also(::runtimeOnly)
         .also(::jooqCodegen)
+    // Redis
+    implementation(libs.lettuce.core)
     // Types
     implementation(libs.bundles.kotlin.result)
     implementation(libs.kotlinx.datetime)

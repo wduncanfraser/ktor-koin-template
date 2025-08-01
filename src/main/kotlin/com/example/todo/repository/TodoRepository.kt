@@ -1,6 +1,6 @@
 package com.example.todo.repository
 
-import com.example.core.models.Page
+import com.example.core.domain.Page
 import com.example.core.repository.RepositoryConsts
 import com.example.core.repository.RepositoryResult
 import com.example.core.repository.mapExpectingOne
