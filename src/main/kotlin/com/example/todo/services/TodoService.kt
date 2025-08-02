@@ -1,6 +1,6 @@
 package com.example.todo.services
 
-import com.example.core.models.Page
+import com.example.core.domain.Page
 import com.example.core.repository.RepositoryError
 import com.example.resultTransactionCoroutine
 import com.example.todo.repository.TodoRepository

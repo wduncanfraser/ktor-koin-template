@@ -1,8 +1,10 @@
 import { check } from 'k6';
+import http from 'k6/http';
 import { TodoClient } from './generated/todo.ts';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 const baseUrl: string = __ENV.BASE_URL ?? "http://localhost:8080/api/v1";
+const cookie: string = __ENV.COOKIE
 const todoClient = new TodoClient({ baseUrl });
 
 export const options = {
@@ -12,6 +14,9 @@ export const options = {
 };
 
 export default function() {
+  const jar = http.cookieJar();
+  jar.set('http://localhost:8080', 'example-cookie-id', cookie);
+
   // List up front
   const initialListResponse = todoClient.listTodos(
       null,

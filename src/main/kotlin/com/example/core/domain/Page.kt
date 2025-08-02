@@ -1,4 +1,4 @@
-package com.example.core.models
+package com.example.core.domain
 
 /**
  * Model data and metadata that describes the current page of items.

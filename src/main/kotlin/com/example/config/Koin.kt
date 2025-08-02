@@ -1,5 +1,6 @@
 package com.example.config
 
+import com.example.authn.authNModule
 import com.example.todo.todoModule
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -11,7 +12,10 @@ fun Application.configureKoin() {
         slf4jLogger()
         modules(
             monitoringModule,
+            httpClientModule,
+            authNModule,
             databaseModule(),
+            redisModule(),
             todoModule
         )
     }

@@ -1,3 +1,4 @@
+---
 services:
   dbmate:
     image: ghcr.io/amacneil/dbmate:2.27
@@ -12,10 +13,17 @@ services:
     - db
   db:
     image: postgres:17-alpine
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: admin
     ports:
     - "5432:5432"
     volumes:
     - ./db/dev/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+  valkey:
+    image: valkey/valkey:8.1-alpine
+    restart: unless-stopped
+    environment:
+      VALKEY_EXTRA_FLAGS: --requirepass valkey
+    ports:
+    - "6379:6379"
