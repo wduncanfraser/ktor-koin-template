@@ -1,3 +1,4 @@
+---
 services:
   dbmate:
     image: ghcr.io/amacneil/dbmate:2.27

@@ -5,21 +5,21 @@ info:
   title: Todo
   description: Todo API for Ktor Template
 security:
-  - AuthJWT: []  # required for all paths
+- AuthJWT: []  # required for all paths
 servers:
-  - url: 'http://localhost:8080/api/v1'
-    description: Local Development server
+- url: 'http://localhost:8080/api/v1'
+  description: Local Development server
 paths:
   /todos:
     get:
       summary: List all todos
       operationId: listTodos
       tags:
-        - Todos
+      - Todos
       parameters:
-        - $ref: "#/components/parameters/PageSize"
-        - $ref: "#/components/parameters/PageNumber"
-        - $ref: "#/components/parameters/Completed"
+      - $ref: "#/components/parameters/PageSize"
+      - $ref: "#/components/parameters/PageNumber"
+      - $ref: "#/components/parameters/Completed"
       responses:
         '200':
           $ref: "#/components/responses/ListTodosResponse"
@@ -29,7 +29,7 @@ paths:
       summary: Create a todo
       operationId: createTodo
       tags:
-        - Todos
+      - Todos
       requestBody:
         required: true
         description: The request body for creating a Todo.
@@ -51,9 +51,9 @@ paths:
       summary: Update a todo
       operationId: updateTodo
       tags:
-        - Todos
+      - Todos
       parameters:
-        - $ref: "#/components/parameters/TodoId"
+      - $ref: "#/components/parameters/TodoId"
       requestBody:
         required: true
         description: The request body for updating a Todo.
@@ -76,9 +76,9 @@ paths:
       summary: Delete a todo
       operationId: deleteTodo
       tags:
-        - Todos
+      - Todos
       parameters:
-        - $ref: "#/components/parameters/TodoId"
+      - $ref: "#/components/parameters/TodoId"
       responses:
         '204':
           description: Todo was deleted successfully.
@@ -154,8 +154,8 @@ components:
         application/json:
           schema:
             required:
-              - data
-              - pagination
+            - data
+            - pagination
             properties:
               data:
                 type: array
@@ -206,10 +206,10 @@ components:
     PaginationMetadata:
       type: object
       required:
-        - page
-        - pageSize
-        - totalPages
-        - totalRows
+      - page
+      - pageSize
+      - totalPages
+      - totalRows
       properties:
         page:
           type: integer
@@ -230,11 +230,11 @@ components:
       type: object
       description: A todo item.
       required:
-        - id
-        - name
-        - completed
-        - createdAt
-        - updatedAt
+      - id
+      - name
+      - completed
+      - createdAt
+      - updatedAt
       properties:
         id:
           type: string
@@ -261,7 +261,7 @@ components:
     CreateTodoRequest:
       type: object
       required:
-        - name
+      - name
       properties:
         name:
           $ref: '#/components/schemas/TodoName'
@@ -269,8 +269,8 @@ components:
     UpdateTodoRequest:
       type: object
       required:
-        - name
-        - completed
+      - name
+      - completed
       properties:
         name:
           $ref: '#/components/schemas/TodoName'
