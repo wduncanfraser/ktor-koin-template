@@ -5,20 +5,19 @@ ktor:
     - com.example.ApplicationKt.module
   deployment:
     port: 8080
-    banner: "ASDF"
 authentication:
-  sessionCookieName: "example-cookie-id"
-  sessionSigningKey: "6819b57a326945c1968f45236589"
+  sessionCookieName: ${AUTHENTICATION_SESSIONCOOKIENAME:example-cookie-id}
+  sessionSigningKey: ${AUTHENTICATION_SESSIONSIGNINGKEY:6819b57a326945c1968f45236589}
   oAuth:
-    callbackUrl: "http://localhost:8080/callback"
+    callbackUrl: ${AUTHENTICATION_OAUTH_CALLBACKURL:http://localhost:8080/callback}
     clientId: ${AUTHENTICATION_OAUTH_CLIENTID}
     clientSecret: ${AUTHENTICATION_OAUTH_CLIENTSECRET}
 database:
-  url: "jdbc:postgresql://localhost:5432/todo"
-  user: todo
-  password: todo
-  poolSize: 20
+  url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/todo}
+  user: ${DATABASE_USER:todo}
+  password: ${DATABASE_PASSWORD:todo}
+  poolSize: ${DATABASE_POOLSIZE:10}
 redis:
-  host: localhost
-  port: 6379
-  password: valkey
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:valkey}
