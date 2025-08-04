@@ -7,6 +7,9 @@ on:
     - main
   pull_request:
 
+env:
+  SERVICE_TAG: ktor-koin-template:latest
+
 jobs:
   yaml-lint:
     runs-on: ubuntu-24.04
@@ -94,3 +97,23 @@ jobs:
 
     - name: Generate and submit dependency graph
       uses: gradle/actions/dependency-submission@v4
+
+  docker-build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: false
+        tags: ${{ env.SERVICE_TAG }}

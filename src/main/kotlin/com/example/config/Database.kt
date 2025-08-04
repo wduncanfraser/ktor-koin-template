@@ -5,10 +5,13 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
 import io.ktor.server.config.property
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
 import kotlinx.serialization.Serializable
 import org.jooq.DSLContext
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
+import org.jooq.impl.DefaultConfiguration
 import org.koin.dsl.module
 import org.koin.ktor.ext.inject
 
@@ -26,7 +29,13 @@ fun Application.databaseModule() = module {
         // Disable logo and tips before configuring jooq
         System.setProperty("org.jooq.no-logo", "true")
         System.setProperty("org.jooq.no-tips", "true")
-        DSL.using(get<HikariDataSource>(), SQLDialect.POSTGRES)
+        val config = DefaultConfiguration().apply {
+            setDataSource(get<HikariDataSource>())
+            setSQLDialect(SQLDialect.POSTGRES)
+            // Wire up Jooq to use the IO Dispatcher for coroutines
+            setExecutorProvider {  Dispatchers.IO.asExecutor() }
+        }
+        DSL.using(config)
     }
 }
 
