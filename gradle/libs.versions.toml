@@ -32,8 +32,8 @@ kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.re
 kotlin-result = { module = "com.michael-bull.kotlin-result:kotlin-result", version.ref = "kotlin-result" }
 kotlin-result-coroutines = { module = "com.michael-bull.kotlin-result:kotlin-result-coroutines", version.ref = "kotlin-result" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
-kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version = "kotlinx-coroutines" }
+1.10.2-core = { module = "org.jetbrains.kotlinx:1.10.2-core", version.ref = "1.10.2" }
+1.10.2-reactive = { module = "org.jetbrains.kotlinx:1.10.2-reactive", version = "1.10.2" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 ktor-client-apache5 = { module = "io.ktor:ktor-client-apache5" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation" }
@@ -82,7 +82,7 @@ kotlin-result = [
 
 kotlinx-coroutines = [
     "kotlinx-coroutines-core",
-    "kotlinx-coroutines-reactive",
+    "1.10.2-reactive",
 ]
 
 ktor-client = [
