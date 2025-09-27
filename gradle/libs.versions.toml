@@ -1,5 +1,5 @@
 [versions]
-cohort = "2.7.2"
+cohort = "2.8.0"
 detekt = "1.23.8"
 fabrikt = "24.0.0"
 hikari = "7.0.2"
