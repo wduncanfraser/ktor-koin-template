@@ -1,6 +1,6 @@
-ARG GRADLE_VERSION=9.0.0
-ARG JAVA_VERSION=21.0.8_9
-ARG GRADLE_CONTAINER=gradle:${GRADLE_VERSION}-jdk21-alpine
+ARG GRADLE_VERSION=9.3.1
+ARG JAVA_VERSION=25.0.2_10
+ARG GRADLE_CONTAINER=gradle:${GRADLE_VERSION}-jdk25-alpine
 ARG SERVICE_USER=template
 
 # Stage 1: Cache Gradle dependencies
@@ -27,5 +27,6 @@ RUN addgroup --system ${SERVICE_USER} && \
 RUN mkdir /app
 USER ${SERVICE_USER}
 COPY --from=build /home/gradle/src/build/libs/*.jar /app/ktor-koin-template.jar
-ENTRYPOINT ["java","-jar","/app/ktor-koin-template.jar"]
+# TODO: Track Netty changes to support Java 25 native access https://github.com/netty/netty/issues/15404
+ENTRYPOINT ["java", "--enable-native-access=ALL-UNNAMED", "-jar","/app/ktor-koin-template.jar"]
 EXPOSE 8080

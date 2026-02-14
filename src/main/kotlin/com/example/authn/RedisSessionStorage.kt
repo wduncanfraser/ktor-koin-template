@@ -8,7 +8,6 @@ import io.lettuce.core.api.coroutines
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
-import kotlinx.datetime.toStdlibInstant
 import kotlinx.serialization.json.Json
 import kotlin.time.toJavaInstant
 
@@ -23,7 +22,7 @@ class RedisSessionStorage(
 ) : SessionStorage {
     override suspend fun write(id: String, value: String) {
         val session = Json.decodeFromString<UserSession>(value)
-        val expiration = session.expiration.toStdlibInstant().toJavaInstant()
+        val expiration = session.expiration.toJavaInstant()
         val expirationMillis = expiration.toEpochMilli()
         val api = redisConnection.sync()
         // Set session with the expiration aligning with token expiration
