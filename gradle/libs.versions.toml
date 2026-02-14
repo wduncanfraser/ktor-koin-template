@@ -14,7 +14,7 @@ ktor = "3.3.2"
 lettuce = "6.8.1.RELEASE"
 logback = "1.5.21"
 micrometer = "1.16.0"
-postgresql = "42.7.7"
+postgresql = "42.7.8"
 
 [libraries]
 cohort-hikari = { module = "com.sksamuel.cohort:cohort-hikari", version.ref = "cohort" }
