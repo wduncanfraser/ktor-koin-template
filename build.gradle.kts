@@ -94,11 +94,9 @@ idea {
 tasks {
     val apiFile = "$projectDir/src/main/resources/openapi/todo.yaml"
 
-    val deleteGeneratedApi by registering(DefaultTask::class) {
+    val deleteGeneratedApi by registering(Delete::class) {
         group = "Fabrikt"
-        doLast {
-            delete("$generationDir/kotlin/com/example/generate/api")
-        }
+        delete("$generationDir/kotlin/com/example/generate/api")
     }
 
     val generateApi by registering(JavaExec::class) {
@@ -120,6 +118,7 @@ tasks {
             "--http-model-suffix", "Contract",
             "--http-controller-target", "KTOR",
             "--serialization-library", "KOTLINX_SERIALIZATION",
+            "--instant-library", "KOTLIN_TIME_INSTANT",
             "--validation-library", "NO_VALIDATION",
         )
         dependsOn(deleteGeneratedApi)

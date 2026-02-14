@@ -2,7 +2,7 @@ package com.example.generated.api.models
 
 import kotlin.Boolean
 import kotlin.String
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

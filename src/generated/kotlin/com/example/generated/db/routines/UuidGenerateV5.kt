@@ -48,7 +48,9 @@ open class UuidGenerateV5 : AbstractRoutine<UUID>("uuid_generate_v5", Public.PUB
     /**
      * Set the <code>namespace</code> parameter IN value to the routine
      */
-    fun setNamespace(value: UUID?): Unit = setValue(UuidGenerateV5.NAMESPACE, value)
+    fun setNamespace(value: UUID?): Unit {
+        setValue(UuidGenerateV5.NAMESPACE, value)
+    }
 
     /**
      * Set the <code>namespace</code> parameter to the function to be used with
@@ -61,7 +63,9 @@ open class UuidGenerateV5 : AbstractRoutine<UUID>("uuid_generate_v5", Public.PUB
     /**
      * Set the <code>name</code> parameter IN value to the routine
      */
-    fun setName_(value: String?): Unit = setValue(UuidGenerateV5.NAME, value)
+    fun setName_(value: String?): Unit {
+        setValue(UuidGenerateV5.NAME, value)
+    }
 
     /**
      * Set the <code>name</code> parameter to the function to be used with a

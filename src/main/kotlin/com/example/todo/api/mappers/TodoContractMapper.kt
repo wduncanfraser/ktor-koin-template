@@ -9,7 +9,6 @@ import com.example.generated.api.models.UpdateTodoRequestContract
 import com.example.todo.domain.Todo
 import com.example.todo.domain.TodoForCreate
 import com.example.todo.domain.TodoForUpdate
-import kotlinx.datetime.toDeprecatedInstant
 import java.util.UUID
 
 /**
@@ -26,9 +25,9 @@ object TodoContractMapper {
         id = todo.id.toString(),
         name = todo.name,
         completed = todo.completedAt != null,
-        completedAt = todo.completedAt?.toDeprecatedInstant(),
-        createdAt = todo.createdAt.toDeprecatedInstant(),
-        updatedAt = todo.modifiedAt.toDeprecatedInstant(),
+        completedAt = todo.completedAt,
+        createdAt = todo.createdAt,
+        updatedAt = todo.modifiedAt,
     )
 
     fun toDomain(contract: CreateTodoRequestContract): TodoForCreate {

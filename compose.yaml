@@ -22,7 +22,7 @@ services:
         condition: service_completed_successfully
 
   dbmate:
-    image: ghcr.io/amacneil/dbmate:2.27
+    image: ghcr.io/amacneil/dbmate:2.30
     command: --wait --wait-timeout 10s migrate --strict --verbose
     environment:
       DATABASE_URL: postgresql://db:5432/todo?sslmode=disable

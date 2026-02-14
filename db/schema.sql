@@ -1,3 +1,8 @@
+\restrict dbmate
+
+-- Dumped from database version 17.5
+-- Dumped by pg_dump version 18.1
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -155,6 +160,8 @@ CREATE TRIGGER trg_table_modified BEFORE UPDATE ON public.todo FOR EACH ROW EXEC
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict dbmate
 
 
 --
