@@ -13,24 +13,20 @@ object TodoMapper {
     /**
      * Convert a jooq [TodoRecord] instance into a [Todo]
      */
-    fun toDomain(record: TodoRecord): Todo {
-        return Todo(
-            id = record.id!!,
-            name = record.name!!,
-            completedAt = record.completedAt?.toKotlinInstant(),
-            createdAt = record.createdAt!!.toKotlinInstant(),
-            modifiedAt = record.modifiedAt!!.toKotlinInstant(),
-        )
-    }
+    fun toDomain(record: TodoRecord) = Todo(
+        id = record.id!!,
+        name = record.name!!,
+        completedAt = record.completedAt?.toKotlinInstant(),
+        createdAt = record.createdAt!!.toKotlinInstant(),
+        modifiedAt = record.modifiedAt!!.toKotlinInstant(),
+    )
 
     /**
      * Convert a [TodoForSave] instance into a [TodoRecord].
      */
-    fun toRecord(todo: TodoForSave): TodoRecord {
-        return TodoRecord(
-            id = todo.id,
-            name = todo.name,
-            completedAt = todo.completedAt?.toJavaInstant(),
-        )
-    }
+    fun toRecord(todo: TodoForSave) = TodoRecord(
+        id = todo.id,
+        name = todo.name,
+        completedAt = todo.completedAt?.toJavaInstant(),
+    )
 }
