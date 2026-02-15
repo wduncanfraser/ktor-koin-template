@@ -1,7 +1,10 @@
 package com.example
 
+import com.example.config.DatabaseConfig
+import com.example.config.RedisConfig
 import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.core.test.TestCase
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -14,9 +17,12 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.Network
+import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.MountableFile
+import java.sql.DriverManager
+import java.time.Duration
 
 abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body) {
     override suspend fun beforeSpec(spec: Spec) {
@@ -33,7 +39,16 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
         postgres.stop()
     }
 
+    override suspend fun beforeEach(testCase: TestCase) {
+        super.beforeEach(testCase)
+        DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { conn ->
+            conn.createStatement().execute("TRUNCATE TABLE ${DATABASE_TABLES.joinToString(", ")}")
+        }
+    }
+
     companion object {
+        private val DATABASE_TABLES = listOf("todo")
+
         val testNetwork: Network = Network.newNetwork()
 
         val postgres = PostgreSQLContainer("postgres:17-alpine").apply {
@@ -60,18 +75,26 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
                 "/db",
             )
             withCommand("--wait", "--wait-timeout", "10s", "migrate", "--strict")
-            waitingFor(Wait.forLogMessage(".*Applied.*", 1))
+            withStartupCheckStrategy(OneShotStartupCheckStrategy().withTimeout(Duration.ofSeconds(5)))
         }
 
         fun withTestApplication(block: suspend ApplicationTestBuilder.() -> Unit) {
             testApplication {
                 application {
+                    val databaseConfig = DatabaseConfig(
+                        url = postgres.jdbcUrl,
+                        user = postgres.username,
+                        password = postgres.password,
+                        poolSize = 5,
+                    )
+
+                    val redisConfig = RedisConfig(
+                        host = valkey.host,
+                        port = valkey.getMappedPort(6379),
+                    )
                     integrationTestModule(
-                        jdbcUrl = postgres.jdbcUrl,
-                        dbUser = postgres.username,
-                        dbPassword = postgres.password,
-                        redisHost = valkey.host,
-                        redisPort = valkey.getMappedPort(6379),
+                        databaseConfig = databaseConfig,
+                        redisConfig = redisConfig,
                     )
                 }
 

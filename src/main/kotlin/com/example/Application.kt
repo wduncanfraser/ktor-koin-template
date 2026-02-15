@@ -3,6 +3,7 @@ package com.example
 import com.example.config.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
@@ -37,6 +38,8 @@ fun Application.module() {
 
     routing {
         swaggerUI(path = "swagger", swaggerFile = "openapi/todo.yaml")
-        apiRoutes()
+        authenticate("auth-session") {
+            apiRoutes()
+        }
     }
 }
