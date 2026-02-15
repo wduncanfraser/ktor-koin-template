@@ -68,8 +68,7 @@ dependencies {
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.logback.classic)
     // Tests
-    testImplementation(libs.kotlin.test.junit)
-    testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.bundles.kotest)
 }
 
 kotlin {
@@ -81,7 +80,7 @@ kotlin {
 testing {
     suites {
         val test by getting(JvmTestSuite::class) {
-            useJUnit()
+            useJUnitJupiter()
         }
 
         register<JvmTestSuite>("integrationTest") {
