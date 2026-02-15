@@ -1,6 +1,6 @@
 [versions]
 cohort = "2.8.2"
-detekt = "1.23.8"
+detekt = "2.0.0-alpha.2"
 fabrikt = "25.8.0"
 hikari = "7.0.2"
 jooq = "3.20.11"
@@ -108,7 +108,7 @@ ktor-server = [
 ]
 
 [plugins]
-detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
 jooq-codegen = { id = "org.jooq.jooq-codegen-gradle", version.ref = "jooq" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

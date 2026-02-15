@@ -19,6 +19,8 @@ import kotlinx.coroutines.Dispatchers
 import org.koin.dsl.module
 import org.koin.ktor.ext.inject
 
+private const val CALL_ID_LENGTH = 32
+
 val monitoringModule = module {
     single<PrometheusMeterRegistry> { PrometheusMeterRegistry(PrometheusConfig.DEFAULT) }
 }
@@ -29,7 +31,7 @@ fun Application.configureMonitoring() {
 
     install(CallId) {
         header(HttpHeaders.XRequestId)
-        generate(32, "0123456789abcdef")
+        generate(CALL_ID_LENGTH, "0123456789abcdef")
     }
 
     install(CallLogging) {

@@ -2,10 +2,10 @@ package com.example
 
 import org.junit.Test
 
+class ApplicationIntegrationTest {
 
-class ApplicationTest {
     @Test
-    fun testRoot() {
+    fun testApplicationStarts() {
         return
     }
 }

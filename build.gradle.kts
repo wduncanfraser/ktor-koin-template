@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.jooq.codegen)
     alias(libs.plugins.detekt)
+    `jvm-test-suite`
     idea
 }
 
@@ -77,6 +78,30 @@ kotlin {
     }
 }
 
+testing {
+    suites {
+        val test by getting(JvmTestSuite::class) {
+            useJUnit()
+        }
+
+        register<JvmTestSuite>("integrationTest") {
+            useJUnit()
+
+            dependencies {
+                implementation(project())
+            }
+
+            targets {
+                all {
+                    testTask.configure {
+                        shouldRunAfter(test)
+                    }
+                }
+            }
+        }
+    }
+}
+
 detekt {
     autoCorrect = project.findProperty("autoCorrect") as String? == "true"
     buildUponDefaultConfig = false
@@ -88,6 +113,9 @@ idea {
         // Mark the generated source set as generatedRoot
         generatedSourceDirs.plusAssign(file("$generationDir/java"))
         generatedSourceDirs.plusAssign(file("$generationDir/kotlin"))
+        // Mark integration test sources
+        testSources.from(sourceSets["integrationTest"].kotlin.srcDirs)
+        testResources.from(sourceSets["integrationTest"].resources.srcDirs)
     }
 }
 
@@ -126,6 +154,10 @@ tasks {
 
     withType<KotlinCompile> {
         mustRunAfter(generateApi)
+    }
+
+    check {
+        dependsOn(testing.suites.named("integrationTest"))
     }
 }
 
