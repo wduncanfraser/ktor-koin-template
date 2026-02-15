@@ -80,7 +80,7 @@ jobs:
       uses: gradle/actions/setup-gradle@v5
 
     - name: Run build
-      run: ./gradlew buildFatJar
+      run: ./gradlew test integrationTest
 
   dependency-submission:
     runs-on: ubuntu-24.04

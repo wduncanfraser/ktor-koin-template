@@ -4,8 +4,10 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlinx.serialization)
+    alias(libs.plugins.kotest)
     alias(libs.plugins.jooq.codegen)
     alias(libs.plugins.detekt)
+    `jvm-test-suite`
     idea
 }
 
@@ -67,13 +69,44 @@ dependencies {
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.logback.classic)
     // Tests
-    testImplementation(libs.kotlin.test.junit)
-    testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.bundles.kotest)
 }
 
 kotlin {
     compilerOptions {
         optIn.add("kotlin.time.ExperimentalTime")
+    }
+}
+
+testing {
+    suites {
+        @Suppress("UnstableApiUsage")
+        val test by getting(JvmTestSuite::class) {
+            useJUnitJupiter()
+        }
+
+        @Suppress("UnstableApiUsage")
+        register<JvmTestSuite>("integrationTest") {
+            useJUnitJupiter()
+
+            configurations["integrationTestImplementation"].extendsFrom(configurations.implementation.get())
+            configurations["integrationTestRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
+
+            dependencies {
+                implementation(project())
+                implementation.bundle(libs.bundles.kotest)
+                implementation.bundle(libs.bundles.testcontainers)
+                implementation(libs.ktor.server.test.host)
+            }
+
+            targets {
+                all {
+                    testTask.configure {
+                        shouldRunAfter(test)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -88,6 +121,9 @@ idea {
         // Mark the generated source set as generatedRoot
         generatedSourceDirs.plusAssign(file("$generationDir/java"))
         generatedSourceDirs.plusAssign(file("$generationDir/kotlin"))
+        // Mark integration test sources
+        testSources.from(sourceSets["integrationTest"].kotlin.srcDirs)
+        testResources.from(sourceSets["integrationTest"].resources.srcDirs)
     }
 }
 
@@ -126,6 +162,11 @@ tasks {
 
     withType<KotlinCompile> {
         mustRunAfter(generateApi)
+    }
+
+    check {
+        @Suppress("UnstableApiUsage")
+        dependsOn(testing.suites.named("integrationTest"))
     }
 }
 

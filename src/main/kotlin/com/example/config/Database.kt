@@ -12,6 +12,7 @@ import org.jooq.DSLContext
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
 import org.jooq.impl.DefaultConfiguration
+import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.koin.ktor.ext.inject
 
@@ -23,8 +24,13 @@ fun Application.warmupDatabase() {
     ctx.selectOne().fetch()
 }
 
-fun Application.databaseModule() = module {
-    single<HikariDataSource> { buildDataSource() }
+fun Application.databaseModule(): Module {
+    val databaseConfig: DatabaseConfig = property("database")
+    return this.databaseModule(databaseConfig)
+}
+
+fun Application.databaseModule(databaseConfig: DatabaseConfig) = module {
+    single<HikariDataSource> { buildDataSource(databaseConfig) }
     single<DSLContext> {
         // Disable logo and tips before configuring jooq
         System.setProperty("org.jooq.no-logo", "true")
@@ -47,8 +53,7 @@ data class DatabaseConfig(
     val poolSize: Int,
 )
 
-fun Application.buildDataSource(): HikariDataSource {
-    val databaseConfig: DatabaseConfig = property("database")
+fun Application.buildDataSource(databaseConfig: DatabaseConfig): HikariDataSource {
     val prometheusRegistry by inject<PrometheusMeterRegistry>()
     val hikariConfig = HikariConfig().apply {
         driverClassName = "org.postgresql.Driver"

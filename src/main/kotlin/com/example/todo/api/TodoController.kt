@@ -75,12 +75,11 @@ class TodoController(
                     message = "Todo not found: todoId=${error.id}",
                     cause = null,
                 )
+
                 is TodoServiceError.UnhandledServiceError -> RuntimeException(
                     "Unexpected exception",
                     error.t,
                 )
-
-                else -> RuntimeException("Unexpected error: $error")
             }
         }
     }

@@ -9,7 +9,6 @@ import com.example.generated.api.models.UpdateTodoRequestContract
 import com.example.todo.domain.Todo
 import com.example.todo.domain.TodoForCreate
 import com.example.todo.domain.TodoForUpdate
-import java.util.UUID
 
 /**
  * Contract mappers are used to convert from our generated contract models to Domain models, and vice versa.
@@ -30,15 +29,11 @@ object TodoContractMapper {
         updatedAt = todo.modifiedAt,
     )
 
-    fun toDomain(contract: CreateTodoRequestContract): TodoForCreate {
-        return TodoForCreate(contract.name)
-    }
+    fun toDomain(contract: CreateTodoRequestContract) = TodoForCreate(contract.name)
 
-    fun toDomain(todoId: String, contract: UpdateTodoRequestContract): TodoForUpdate {
-        return TodoForUpdate(
-            id = UUID.fromString(todoId),
-            name = contract.name,
-            completed = contract.completed,
-        )
-    }
+    fun toDomain(todoId: String, contract: UpdateTodoRequestContract) = TodoForUpdate(
+        id = TodoIdMapper.toDomain(todoId),
+        name = contract.name,
+        completed = contract.completed,
+    )
 }

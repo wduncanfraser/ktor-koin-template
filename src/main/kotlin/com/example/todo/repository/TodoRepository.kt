@@ -29,33 +29,31 @@ class TodoRepository {
         pageSize: Int,
         page: Int,
         completed: Boolean? = null,
-    ): RepositoryResult<Page<Todo>> {
-        return runWrappingError {
-            val totalRows = ctx.selectCount()
-                .from(TODO)
-                .where(todoConditions(completed))
-                .awaitSingle()
-                .get(0, Int::class.java)
-            val totalPages = (totalRows + pageSize - 1) / pageSize
-            val offset = (page - 1) * pageSize
+    ): RepositoryResult<Page<Todo>> = runWrappingError {
+        val totalRows = ctx.selectCount()
+            .from(TODO)
+            .where(todoConditions(completed))
+            .awaitSingle()
+            .get(0, Int::class.java)
+        val totalPages = (totalRows + pageSize - 1) / pageSize
+        val offset = (page - 1) * pageSize
 
-            val data = ctx.selectFrom(TODO)
-                .where(todoConditions(completed))
-                .orderBy(TODO.CREATED_AT.asc())
-                .limit(pageSize)
-                .offset(offset)
-                .fetchAsync()
-                .thenApply { it.map(TodoMapper::toDomain) }
-                .await()
+        val data = ctx.selectFrom(TODO)
+            .where(todoConditions(completed))
+            .orderBy(TODO.CREATED_AT.asc())
+            .limit(pageSize)
+            .offset(offset)
+            .fetchAsync()
+            .thenApply { it.map(TodoMapper::toDomain) }
+            .await()
 
-            Page(
-                data = data,
-                pageNumber = page,
-                pageSize = pageSize,
-                totalRows = totalRows,
-                totalPages = totalPages,
-            )
-        }
+        Page(
+            data = data,
+            pageNumber = page,
+            pageSize = pageSize,
+            totalRows = totalRows,
+            totalPages = totalPages,
+        )
     }
 
     /**
@@ -64,14 +62,12 @@ class TodoRepository {
     suspend fun count(
         ctx: DSLContext,
         completed: Boolean? = null,
-    ): RepositoryResult<Int> {
-        return runWrappingError {
-            ctx.selectCount()
-                .from(TODO)
-                .where(todoConditions(completed))
-                .awaitSingle()
-                .get(0, Int::class.java)
-        }
+    ): RepositoryResult<Int> = runWrappingError {
+        ctx.selectCount()
+            .from(TODO)
+            .where(todoConditions(completed))
+            .awaitSingle()
+            .get(0, Int::class.java)
     }
 
     /**
@@ -83,20 +79,18 @@ class TodoRepository {
         id: UUID,
         lockRecords: Boolean = false,
         lockWait: Duration = RepositoryConsts.DEFAULT_LOCK_TIMEOUT,
-    ): RepositoryResult<Todo> {
-        return runWrappingError {
-            ctx.selectFrom(TODO)
-                .where(TODO.ID.eq(id))
-                .apply {
-                    if (lockRecords) {
-                        this.forUpdate()
-                            .wait(lockWait.seconds.toInt())
-                    }
+    ): RepositoryResult<Todo> = runWrappingError {
+        ctx.selectFrom(TODO)
+            .where(TODO.ID.eq(id))
+            .apply {
+                if (lockRecords) {
+                    this.forUpdate()
+                        .wait(lockWait.seconds.toInt())
                 }
-                .awaitFirstOrNull()
-                ?.let(TodoMapper::toDomain)
-        }.toNotFoundIfNull()
-    }
+            }
+            .awaitFirstOrNull()
+            ?.let(TodoMapper::toDomain)
+    }.toNotFoundIfNull()
 
     /**
      * Insert or update a [Todo] and return the created entity
@@ -104,19 +98,17 @@ class TodoRepository {
     suspend fun upsert(
         c: Configuration,
         todo: TodoForSave,
-    ): RepositoryResult<Todo> {
-        return runWrappingError {
-            val record = TodoMapper.toRecord(todo)
-            val result = c.dsl()
-                .insertInto(TODO)
-                .set(record)
-                .onDuplicateKeyUpdate()
-                .set(record)
-                .returning()
-                .awaitSingle()
+    ): RepositoryResult<Todo> = runWrappingError {
+        val record = TodoMapper.toRecord(todo)
+        val result = c.dsl()
+            .insertInto(TODO)
+            .set(record)
+            .onDuplicateKeyUpdate()
+            .set(record)
+            .returning()
+            .awaitSingle()
 
-            TodoMapper.toDomain(result)
-        }
+        TodoMapper.toDomain(result)
     }
 
     /**
@@ -126,15 +118,13 @@ class TodoRepository {
     suspend fun delete(
         c: Configuration,
         id: UUID,
-    ): RepositoryResult<Unit> {
-        return runWrappingError {
-            c.dsl()
-                .deleteFrom(TODO)
-                .where(TODO.ID.eq(id))
-                .executeAsync()
-                .await()
-        }.mapExpectingOne()
-    }
+    ): RepositoryResult<Unit> = runWrappingError {
+        c.dsl()
+            .deleteFrom(TODO)
+            .where(TODO.ID.eq(id))
+            .executeAsync()
+            .await()
+    }.mapExpectingOne()
 
     /**
      * Common conditions to a list/count [Todo]s query.

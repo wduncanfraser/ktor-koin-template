@@ -7,10 +7,16 @@ import io.lettuce.core.RedisClient
 import io.lettuce.core.RedisURI
 import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.Serializable
+import org.koin.core.module.Module
 import org.koin.dsl.module
 
-fun Application.redisModule() = module {
-    single<RedisClient> { buildRedisClient() }
+fun Application.redisModule(): Module {
+    val redisConfig: RedisConfig = property("redis")
+    return redisModule(redisConfig)
+}
+
+fun redisModule(redisConfig: RedisConfig) = module {
+    single<RedisClient> { buildRedisClient(redisConfig) }
     single<StatefulRedisConnection<String, String>> { get<RedisClient>().connect() }
 }
 
@@ -21,9 +27,7 @@ data class RedisConfig(
     val password: String? = null,
 )
 
-fun Application.buildRedisClient(): RedisClient {
-    val redisConfig: RedisConfig = property("redis")
-
+fun buildRedisClient(redisConfig: RedisConfig): RedisClient {
     val redisUri = RedisURI.Builder
         .redis(redisConfig.host, redisConfig.port)
         .apply {

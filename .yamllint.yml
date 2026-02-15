@@ -13,3 +13,4 @@ rules:
 ignore:
 # .github: Excluded as GitHub Actions YAML files are linted by Actionlint
 - '.github'
+- 'config/detekt.yml'
