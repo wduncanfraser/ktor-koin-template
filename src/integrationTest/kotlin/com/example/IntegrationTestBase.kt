@@ -2,6 +2,8 @@ package com.example
 
 import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.core.test.TestCase
+import io.kotest.engine.test.TestResult
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -12,11 +14,18 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
+import org.jooq.SQLDialect
+import org.jooq.impl.DSL
+import org.jooq.impl.DefaultConfiguration
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.Network
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.MountableFile
+import java.sql.Connection
+import java.sql.DriverManager
 
 abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body) {
     override suspend fun beforeSpec(spec: Spec) {
@@ -25,6 +34,33 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
         dbmate.start()
         dbmate.stop()
         valkey.start()
+
+        System.setProperty("org.jooq.no-logo", "true")
+        System.setProperty("org.jooq.no-tips", "true")
+    }
+
+    override suspend fun beforeEach(testCase: TestCase) {
+        super.beforeEach(testCase)
+        val conn = DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password)
+        conn.autoCommit = false
+        testConnection = conn
+
+        // Wrap connection to suppress commits — all changes are rolled back in afterEach
+        val nonCommitting = NonCommittingConnection(conn)
+        val config = DefaultConfiguration().apply {
+            set(nonCommitting)
+            setSQLDialect(SQLDialect.POSTGRES)
+            setExecutorProvider { Dispatchers.IO.asExecutor() }
+        }
+        testDslContext = DSL.using(config)
+    }
+
+    override suspend fun afterEach(testCase: TestCase, result: TestResult) {
+        testConnection?.rollback()
+        testConnection?.close()
+        testConnection = null
+        testDslContext = null
+        super.afterEach(testCase, result)
     }
 
     override suspend fun afterSpec(spec: Spec) {
@@ -34,6 +70,9 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
     }
 
     companion object {
+        private var testConnection: Connection? = null
+        private var testDslContext: org.jooq.DSLContext? = null
+
         val testNetwork: Network = Network.newNetwork()
 
         val postgres = PostgreSQLContainer("postgres:17-alpine").apply {
@@ -64,12 +103,12 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
         }
 
         fun withTestApplication(block: suspend ApplicationTestBuilder.() -> Unit) {
+            val dslContext = testDslContext
+                ?: error("testDslContext not initialized — is beforeEach running?")
             testApplication {
                 application {
                     integrationTestModule(
-                        jdbcUrl = postgres.jdbcUrl,
-                        dbUser = postgres.username,
-                        dbPassword = postgres.password,
+                        dslContext = dslContext,
                         redisHost = valkey.host,
                         redisPort = valkey.getMappedPort(6379),
                     )

@@ -18,15 +18,8 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import java.sql.DriverManager
 
 class TodoControllerIntegrationTest : IntegrationTestBase({
-    beforeEach {
-        DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { conn ->
-            conn.createStatement().execute("TRUNCATE TABLE todo")
-        }
-    }
-
     test("POST /api/v1/todos creates a todo") {
         withTestApplication {
             val client = createTestClient()
