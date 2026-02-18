@@ -5,7 +5,7 @@ import com.example.todo.api.TodoController
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
-fun Routing.apiRoutes() {
+fun Route.apiRoutes() {
     val todoController by inject<TodoController>()
 
     route("/api/v1") {
