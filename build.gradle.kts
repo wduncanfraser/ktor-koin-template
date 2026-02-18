@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotest)
     alias(libs.plugins.jooq.codegen)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.kover)
     `jvm-test-suite`
     idea
 }
@@ -114,6 +115,26 @@ detekt {
     autoCorrect = project.findProperty("autoCorrect") as String? == "true"
     buildUponDefaultConfig = false
     config.setFrom("$projectDir/config/detekt.yml")
+}
+
+kover {
+    reports {
+        filters {
+            excludes {
+                // Exclude code-generated packages (Fabrikt API + jOOQ DB)
+                packages("com.example.generated")
+            }
+        }
+        total {
+            html {
+                onCheck = true
+                title = "Ktor Koin Template Coverage"
+            }
+            xml {
+                onCheck = true
+            }
+        }
+    }
 }
 
 idea {
