@@ -33,6 +33,16 @@ class TodoController(
         call.respondTyped(TodoContractMapper.toContract(result))
     }
 
+    override suspend fun getTodo(
+        todoId: String,
+        call: TypedApplicationCall<TodoResponseContract>,
+    ) {
+        val response = todoService.getTodo(TodoIdMapper.toDomain(todoId))
+            .map(TodoContractMapper::toContract)
+            .getOrThrow(::mapErrorToException)
+        call.respondTyped(response)
+    }
+
     override suspend fun createTodo(
         createTodoRequest: CreateTodoRequestContract,
         call: TypedApplicationCall<TodoResponseContract>
