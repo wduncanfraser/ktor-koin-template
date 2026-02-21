@@ -35,6 +35,15 @@ class TodoService(
     }
 
     /**
+     * Get a single [Todo] by [id].
+     * Returns [TodoServiceError.TodoNotFound] if no [Todo] was found.
+     */
+    suspend fun getTodo(id: UUID): TodoServiceResult<Todo> {
+        return todoRepository.getById(ctx, id)
+            .mapError { it.toServiceError(TodoServiceError.TodoNotFound(id)) }
+    }
+
+    /**
      * Create a new [Todo] from a [TodoForCreate].
      */
     suspend fun createTodo(

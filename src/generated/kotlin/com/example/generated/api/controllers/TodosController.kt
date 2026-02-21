@@ -59,6 +59,18 @@ public interface TodosController {
       call: TypedApplicationCall<TodoResponseContract>)
 
   /**
+   * Get a todo
+   *
+   * Route is expected to respond with [com.example.generated.api.models.TodoResponseContract].
+   * Use [com.example.generated.api.controllers.TypedApplicationCall.respondTyped] to send the
+   * response.
+   *
+   * @param todoId The unique identifier of the Todo.
+   * @param call Decorated ApplicationCall with additional typed respond methods
+   */
+  public suspend fun getTodo(todoId: String, call: TypedApplicationCall<TodoResponseContract>)
+
+  /**
    * Update a todo
    *
    * Route is expected to respond with [com.example.generated.api.models.TodoResponseContract].
@@ -92,6 +104,7 @@ public interface TodosController {
      *
      * - GET /todos List all todos
      * - POST /todos Create a todo
+     * - GET /todos/{todo-id} Get a todo
      * - PUT /todos/{todo-id} Update a todo
      * - DELETE /todos/{todo-id} Delete a todo
      */
@@ -105,6 +118,10 @@ public interface TodosController {
       post("/todos") {
         val createTodoRequest = call.receive<CreateTodoRequestContract>()
         controller.createTodo(createTodoRequest, TypedApplicationCall(call))
+      }
+      `get`("/todos/{todo-id}") {
+        val todoId = call.parameters.getTypedOrFail<kotlin.String>("todo-id")
+        controller.getTodo(todoId, TypedApplicationCall(call))
       }
       put("/todos/{todo-id}") {
         val todoId = call.parameters.getTypedOrFail<kotlin.String>("todo-id")

@@ -47,6 +47,24 @@ paths:
         '400':
           $ref: "#/components/responses/BadRequest"
   /todos/{todo-id}:
+    get:
+      summary: Get a todo
+      operationId: getTodo
+      tags:
+      - Todos
+      parameters:
+      - $ref: "#/components/parameters/TodoId"
+      responses:
+        '200':
+          description: Todo was retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '404':
+          $ref: "#/components/responses/NotFound"
     put:
       summary: Update a todo
       operationId: updateTodo
