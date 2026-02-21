@@ -1,3 +1,4 @@
+---
 config:
   validation: true
   warningsAsErrors: false
@@ -49,7 +50,9 @@ comments:
     endOfSentenceFormat: '([.?!][ \t\n\r\f<])|([.?!:]$)'
   KDocReferencesNonPublicProperty:
     active: false
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
   OutdatedDocumentation:
     active: false
     matchTypeParameters: true
@@ -57,7 +60,9 @@ comments:
     allowParamOnConstructorProperties: false
   UndocumentedPublicClass:
     active: false
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
     searchInNestedClass: true
     searchInInnerClass: true
     searchInInnerObject: true
@@ -66,11 +71,15 @@ comments:
     ignoreDefaultCompanionObject: false
   UndocumentedPublicFunction:
     active: false
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
     searchProtectedFunction: false
   UndocumentedPublicProperty:
     active: false
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
     searchProtectedProperty: false
     ignoreEnumEntries: false
 
@@ -145,14 +154,18 @@ complexity:
     active: false
   StringLiteralDuplication:
     active: false
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
     allowedDuplications: 2
     ignoreAnnotation: true
     allowedWithLengthLessThan: 5
     ignoreStringsRegex: '$^'
   TooManyFunctions:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
     allowedFunctionsPerFile: 11
     allowedFunctionsPerClass: 11
     allowedFunctionsPerInterface: 11
@@ -238,7 +251,9 @@ exceptions:
     - 'toString'
   InstanceOfCheckForException:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
   NotImplementedDeclaration:
     active: false
   ObjectExtendsThrowable:
@@ -264,7 +279,9 @@ exceptions:
     active: false
   ThrowingExceptionsWithoutMessageOrCause:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
     exceptions:
     - 'ArrayIndexOutOfBoundsException'
     - 'Exception'
@@ -279,7 +296,9 @@ exceptions:
     active: true
   TooGenericExceptionCaught:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
     exceptionNames:
     - 'ArrayIndexOutOfBoundsException'
     - 'Error'
@@ -330,7 +349,9 @@ naming:
   FunctionNaming:
     active: true
     aliases: ['FunctionName']
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
     functionPattern: '[a-z][a-zA-Z0-9]*'
     excludeClassPattern: '$^'
   FunctionParameterNaming:
@@ -403,10 +424,14 @@ performance:
     allowedOperations: 2
   ForEachOnRange:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
   SpreadOperator:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
   UnnecessaryInitOnArray:
     active: false
   UnnecessaryPartOfBinaryExpression:
@@ -490,7 +515,9 @@ potential-bugs:
     active: true
   LateinitUsage:
     active: false
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
     ignoreOnClassesPattern: ''
   MapGetWithNotNullAssertionOperator:
     active: true
@@ -530,7 +557,9 @@ potential-bugs:
     active: true
   UnsafeCallOnNullableType:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
   UnsafeCast:
     active: true
     aliases: ['UNCHECKED_CAST']
@@ -639,7 +668,8 @@ style:
       value: 'kotlin.io.print'
     - reason: 'println does not allow you to configure the output stream. Use a logger instead.'
       value: 'kotlin.io.println'
-    - reason: 'using `BigDecimal(Double)` can result in unexpected floating point precision behavior. Use `BigDecimal.valueOf(Double)` or `String.toBigDecimalOrNull()` instead.'
+    - reason: 'using `BigDecimal(Double)` can result in unexpected floating point precision behavior.
+        Use `BigDecimal.valueOf(Double)` or `String.toBigDecimalOrNull()` instead.'
       value: 'java.math.BigDecimal.<init>(kotlin.Double)'
     - reason: 'using `BigDecimal(String)` can result in a `NumberFormatException`. Use `String.toBigDecimalOrNull()`'
       value: 'java.math.BigDecimal.<init>(kotlin.String)'
@@ -668,7 +698,10 @@ style:
     maxJumpCount: 1
   MagicNumber:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**', '**/*.kts']
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
+    - '**/*.kts'
     ignoreNumbers:
     - '-1'
     - '0'
