@@ -80,7 +80,7 @@ jobs:
       uses: gradle/actions/setup-gradle@v5
 
     - name: Run tests and generate coverage report
-      run: ./gradlew test integrationTest koverXmlReport
+      run: ./gradlew test integrationTest koverXmlReport koverHtmlReport
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
@@ -88,6 +88,20 @@ jobs:
         files: build/reports/kover/report.xml
         fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload test results to Codecov
+      uses: codecov/test-results-action@v1
+      with:
+        files: build/test-results/**/*.xml
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload coverage report artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kover-coverage-report
+        path: build/reports/kover/
+        retention-days: 30
 
   dependency-submission:
     runs-on: ubuntu-24.04
