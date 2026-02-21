@@ -118,6 +118,11 @@ detekt {
 }
 
 kover {
+    currentProject {
+        sources {
+            excludedSourceSets.add("integrationTest")
+        }
+    }
     reports {
         filters {
             excludes {

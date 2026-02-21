@@ -79,8 +79,15 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v5
 
-    - name: Run build
-      run: ./gradlew test integrationTest
+    - name: Run tests and generate coverage report
+      run: ./gradlew test integrationTest koverXmlReport
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        files: build/reports/kover/report.xml
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   dependency-submission:
     runs-on: ubuntu-24.04
