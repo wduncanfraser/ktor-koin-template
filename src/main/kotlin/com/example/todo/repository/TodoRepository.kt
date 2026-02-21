@@ -57,20 +57,6 @@ class TodoRepository {
     }
 
     /**
-     * Count all [Todo] in the database
-     */
-    suspend fun count(
-        ctx: DSLContext,
-        completed: Boolean? = null,
-    ): RepositoryResult<Int> = runWrappingError {
-        ctx.selectCount()
-            .from(TODO)
-            .where(todoConditions(completed))
-            .awaitSingle()
-            .get(0, Int::class.java)
-    }
-
-    /**
      * Get a single [Todo] by [id]
      * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if no [Todo] was found.
      */
