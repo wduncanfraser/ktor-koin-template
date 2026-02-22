@@ -13,7 +13,7 @@ authentication:
     clientId: ${AUTHENTICATION_OAUTH_CLIENTID}
     clientSecret: ${AUTHENTICATION_OAUTH_CLIENTSECRET}
 database:
-  url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/todo}
+  url: ${DATABASE_URL:r2dbc:postgresql://localhost:5432/todo}
   user: ${DATABASE_USER:todo}
   password: ${DATABASE_PASSWORD:todo}
   poolSize: ${DATABASE_POOLSIZE:10}

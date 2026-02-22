@@ -1,12 +1,13 @@
 package com.example.config
 
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
 import io.ktor.server.config.property
-import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.asExecutor
+import io.r2dbc.pool.ConnectionPool
+import io.r2dbc.pool.ConnectionPoolConfiguration
+import io.r2dbc.spi.ConnectionFactories
+import io.r2dbc.spi.ConnectionFactoryOptions
+import kotlinx.coroutines.reactive.awaitSingle
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import org.jooq.DSLContext
 import org.jooq.SQLDialect
@@ -15,34 +16,41 @@ import org.jooq.impl.DefaultConfiguration
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.koin.ktor.ext.inject
-import java.util.concurrent.Executors
 
 /**
  * Method to run a noop query in jooq. This triggers all jooq class loading
  */
 fun Application.warmupDatabase() {
     val ctx by inject<DSLContext>()
-    ctx.selectOne().fetch()
+    runBlocking { ctx.selectOne().awaitSingle() }
 }
 
 fun Application.databaseModule(): Module {
     val databaseConfig: DatabaseConfig = property("database")
-    return this.databaseModule(databaseConfig)
+    return databaseModule(databaseConfig)
 }
 
-fun Application.databaseModule(databaseConfig: DatabaseConfig) = module {
-    val databaseDispatcher = Executors.newFixedThreadPool(databaseConfig.poolSize)
-        .asCoroutineDispatcher()
-    single<HikariDataSource> { buildDataSource(databaseConfig) }
+fun databaseModule(databaseConfig: DatabaseConfig) = module {
+    single<ConnectionPool> {
+        val options = ConnectionFactoryOptions.builder()
+            .from(ConnectionFactoryOptions.parse(databaseConfig.url))
+            .option(ConnectionFactoryOptions.USER, databaseConfig.user)
+            .option(ConnectionFactoryOptions.PASSWORD, databaseConfig.password)
+            .build()
+        val connectionFactory = ConnectionFactories.get(options)
+        ConnectionPool(
+            ConnectionPoolConfiguration.builder(connectionFactory)
+                .maxSize(databaseConfig.poolSize)
+                .build()
+        )
+    }
     single<DSLContext> {
         // Disable logo and tips before configuring jooq
         System.setProperty("org.jooq.no-logo", "true")
         System.setProperty("org.jooq.no-tips", "true")
         val config = DefaultConfiguration().apply {
-            setDataSource(get<HikariDataSource>())
+            setConnectionFactory(get<ConnectionPool>())
             setSQLDialect(SQLDialect.POSTGRES)
-            // Wire up Jooq to use the IO Dispatcher for coroutines
-            setExecutorProvider {  databaseDispatcher.asExecutor() }
         }
         DSL.using(config)
     }
@@ -55,17 +63,3 @@ data class DatabaseConfig(
     val password: String,
     val poolSize: Int,
 )
-
-fun Application.buildDataSource(databaseConfig: DatabaseConfig): HikariDataSource {
-    val prometheusRegistry by inject<PrometheusMeterRegistry>()
-    val hikariConfig = HikariConfig().apply {
-        driverClassName = "org.postgresql.Driver"
-        jdbcUrl = databaseConfig.url
-        username = databaseConfig.user
-        password = databaseConfig.password
-        maximumPoolSize = databaseConfig.poolSize
-        metricRegistry = prometheusRegistry
-    }
-
-    return HikariDataSource(hikariConfig)
-}

@@ -82,7 +82,7 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
             testApplication {
                 application {
                     val databaseConfig = DatabaseConfig(
-                        url = postgres.jdbcUrl,
+                        url = "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(5432)}/${postgres.databaseName}",
                         user = postgres.username,
                         password = postgres.password,
                         poolSize = 5,

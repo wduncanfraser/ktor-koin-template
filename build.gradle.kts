@@ -54,11 +54,10 @@ dependencies {
     // Coroutines
     implementation(libs.bundles.kotlinx.coroutines)
     // Database
-    implementation(libs.hikari)
     implementation(libs.bundles.jooq)
-    libs.postgresql
-        .also(::runtimeOnly)
-        .also(::jooqCodegen)
+    jooqCodegen(libs.postgresql)
+    implementation(libs.r2dbc.postgresql)
+    implementation(libs.r2dbc.pool)
     // Redis
     implementation(libs.lettuce.core)
     // Types
@@ -99,6 +98,8 @@ testing {
                 implementation.bundle(libs.bundles.kotest)
                 implementation.bundle(libs.bundles.testcontainers)
                 implementation(libs.ktor.server.test.host)
+                // JDBC driver needed for test table truncation in beforeEach
+                runtimeOnly(libs.postgresql)
             }
 
             targets {
