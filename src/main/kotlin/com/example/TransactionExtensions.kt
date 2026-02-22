@@ -9,16 +9,6 @@ import org.jooq.DSLContext
 
 private class ResultRollbackException(val result: Any?) : Throwable()
 
-suspend fun <T> DSLContext.suspendTransaction(
-    block: suspend (DSLContext) -> T
-): T {
-    return transactionPublisher { trx ->
-        mono(Dispatchers.Unconfined) {
-            block(trx.dsl())
-        }
-    }.awaitSingle()
-}
-
 /**
  * Runs [transactional] inside a jOOQ R2DBC transaction, automatically rolling back if the returned
  * [Result] is an error.
