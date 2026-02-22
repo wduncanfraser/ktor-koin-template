@@ -23,19 +23,12 @@ fun Application.configureSecurity() {
     val redisConnection by inject<StatefulRedisConnection<String, String>>()
     val discordOAuthProvider by inject<DiscordOAuthProvider>()
     val sessionStorage = RedisSessionStorage(redisConnection)
-    // TODO: For now, wrap the session provider in an in-memory cache so we don't make a blocking
-    //  network call on every request.
-    //  Should be able to remove this once coroutine API issues with lettuce are resolved
-    val cachedSessionStorage = CacheStorage(
-        delegate = sessionStorage,
-        idleTimeout = 60000L
-    )
 
     install(Sessions) {
         val secretSignKey = hex(authConfig.sessionSigningKey)
         cookie<UserSession>(
             name = authConfig.sessionCookieName,
-            storage = cachedSessionStorage,
+            storage = sessionStorage,
         ) {
             cookie.path = "/"
             transform(SessionTransportTransformerMessageAuthentication(secretSignKey))
