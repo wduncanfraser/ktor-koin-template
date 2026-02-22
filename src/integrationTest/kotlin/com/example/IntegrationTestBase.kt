@@ -2,7 +2,6 @@ package com.example
 
 import com.example.config.DatabaseConfig
 import com.example.config.RedisConfig
-import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.core.test.TestCase
 import io.ktor.client.HttpClient
@@ -25,20 +24,6 @@ import java.sql.DriverManager
 import java.time.Duration
 
 abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body) {
-    override suspend fun beforeSpec(spec: Spec) {
-        super.beforeSpec(spec)
-        postgres.start()
-        dbmate.start()
-        dbmate.stop()
-        valkey.start()
-    }
-
-    override suspend fun afterSpec(spec: Spec) {
-        super.afterSpec(spec)
-        valkey.stop()
-        postgres.stop()
-    }
-
     override suspend fun beforeEach(testCase: TestCase) {
         super.beforeEach(testCase)
         DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { conn ->
