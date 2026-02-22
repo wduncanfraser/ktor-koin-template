@@ -1,3 +1,4 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -193,6 +194,13 @@ tasks {
     check {
         @Suppress("UnstableApiUsage")
         dependsOn(testing.suites.named("integrationTest"))
+    }
+
+    // Fix issues arising form lettuce and ktor both including netty service files
+    withType<ShadowJar> {
+        mergeServiceFiles()
+        // Also handle Netty's native lib index files specifically
+        append("META-INF/io.netty.versions.properties")
     }
 }
 

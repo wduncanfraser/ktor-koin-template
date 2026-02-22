@@ -5,7 +5,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
 import io.ktor.server.config.property
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.asExecutor
 import kotlinx.serialization.Serializable
 import org.jooq.DSLContext
@@ -15,6 +15,7 @@ import org.jooq.impl.DefaultConfiguration
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.koin.ktor.ext.inject
+import java.util.concurrent.Executors
 
 /**
  * Method to run a noop query in jooq. This triggers all jooq class loading
@@ -30,6 +31,8 @@ fun Application.databaseModule(): Module {
 }
 
 fun Application.databaseModule(databaseConfig: DatabaseConfig) = module {
+    val databaseDispatcher = Executors.newFixedThreadPool(databaseConfig.poolSize)
+        .asCoroutineDispatcher()
     single<HikariDataSource> { buildDataSource(databaseConfig) }
     single<DSLContext> {
         // Disable logo and tips before configuring jooq
@@ -39,7 +42,7 @@ fun Application.databaseModule(databaseConfig: DatabaseConfig) = module {
             setDataSource(get<HikariDataSource>())
             setSQLDialect(SQLDialect.POSTGRES)
             // Wire up Jooq to use the IO Dispatcher for coroutines
-            setExecutorProvider {  Dispatchers.IO.asExecutor() }
+            setExecutorProvider {  databaseDispatcher.asExecutor() }
         }
         DSL.using(config)
     }

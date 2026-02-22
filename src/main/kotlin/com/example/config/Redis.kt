@@ -6,9 +6,13 @@ import io.lettuce.core.ClientOptions
 import io.lettuce.core.RedisClient
 import io.lettuce.core.RedisURI
 import io.lettuce.core.api.StatefulRedisConnection
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.serialization.Serializable
 import org.koin.core.module.Module
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import java.util.concurrent.Executors
 
 fun Application.redisModule(): Module {
     val redisConfig: RedisConfig = property("redis")
@@ -18,6 +22,9 @@ fun Application.redisModule(): Module {
 fun redisModule(redisConfig: RedisConfig) = module {
     single<RedisClient> { buildRedisClient(redisConfig) }
     single<StatefulRedisConnection<String, String>> { get<RedisClient>().connect() }
+    single<CoroutineDispatcher>(named("redisDispatcher")) {
+        Executors.newCachedThreadPool().asCoroutineDispatcher()
+    }
 }
 
 @Serializable

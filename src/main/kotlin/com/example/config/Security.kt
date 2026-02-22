@@ -14,15 +14,18 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.util.*
 import io.lettuce.core.api.StatefulRedisConnection
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.Serializable
+import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 
 fun Application.configureSecurity() {
     val authConfig: AuthenticationConfig = property("authentication")
     val httpClient by inject<HttpClient>()
     val redisConnection by inject<StatefulRedisConnection<String, String>>()
+    val redisDispatcher by inject<CoroutineDispatcher>(named("redisDispatcher"))
     val discordOAuthProvider by inject<DiscordOAuthProvider>()
-    val sessionStorage = RedisSessionStorage(redisConnection)
+    val sessionStorage = RedisSessionStorage(redisConnection, redisDispatcher)
 
     install(Sessions) {
         val secretSignKey = hex(authConfig.sessionSigningKey)
