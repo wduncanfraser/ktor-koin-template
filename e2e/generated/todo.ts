@@ -221,6 +221,40 @@ export class TodoClient {
   }
 
   /**
+   * @summary Get a todo
+   */
+  getTodo(
+    todoId: string,
+    requestParameters?: Params,
+  ): {
+    response: Response;
+    data: TodoResponse;
+  } {
+    const url = new URL(this.cleanBaseUrl + `/todos/${todoId}`);
+    const mergedRequestParameters = this._mergeRequestParameters(
+      requestParameters || {},
+      this.commonRequestParameters,
+    );
+    const response = http.request(
+      "GET",
+      url.toString(),
+      undefined,
+      mergedRequestParameters,
+    );
+    let data;
+
+    try {
+      data = response.json();
+    } catch {
+      data = response.body;
+    }
+    return {
+      response,
+      data,
+    };
+  }
+
+  /**
    * @summary Update a todo
    */
   updateTodo(

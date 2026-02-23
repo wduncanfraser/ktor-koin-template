@@ -24,7 +24,7 @@ class RedisSessionStorage(
         val session = Json.decodeFromString<UserSession>(value)
         val expiration = session.expiration.toJavaInstant()
         val expirationMillis = expiration.toEpochMilli()
-        val api = redisConnection.sync()
+        val api = redisConnection.coroutines()
         // Set session with the expiration aligning with token expiration
         api.set(buildSessionKey(id), value, SetArgs.Builder.exAt(expiration))
         // Index the session ID against the user
@@ -32,7 +32,7 @@ class RedisSessionStorage(
     }
 
     override suspend fun invalidate(id: String) {
-        val api = redisConnection.sync()
+        val api = redisConnection.coroutines()
         // If the session exists, remove the user index value
         api.get(buildSessionKey(id))?.let {
             val session = Json.decodeFromString<UserSession>(it)
@@ -41,10 +41,10 @@ class RedisSessionStorage(
         api.del(buildSessionKey(id))
     }
 
-    // TODO: using coroutines API under stress testing leads to thread deadlock and starvation
     override suspend fun read(id: String): String {
-        val api = redisConnection.sync()
-        return api.get(buildSessionKey(id)) ?: throw NoSuchElementException("Session $id not found")
+        val api = redisConnection.coroutines()
+        return api.get(buildSessionKey(id))
+            ?: throw NoSuchElementException("Session $id not found")
     }
 
     suspend fun listSessionsByUser(userId: String): List<UserSession> {

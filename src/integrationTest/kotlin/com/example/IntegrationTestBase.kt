@@ -2,7 +2,6 @@ package com.example
 
 import com.example.config.DatabaseConfig
 import com.example.config.RedisConfig
-import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.core.test.TestCase
 import io.ktor.client.HttpClient
@@ -20,25 +19,12 @@ import org.testcontainers.containers.Network
 import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.postgresql.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer.POSTGRESQL_PORT
 import org.testcontainers.utility.MountableFile
 import java.sql.DriverManager
 import java.time.Duration
 
 abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body) {
-    override suspend fun beforeSpec(spec: Spec) {
-        super.beforeSpec(spec)
-        postgres.start()
-        dbmate.start()
-        dbmate.stop()
-        valkey.start()
-    }
-
-    override suspend fun afterSpec(spec: Spec) {
-        super.afterSpec(spec)
-        valkey.stop()
-        postgres.stop()
-    }
-
     override suspend fun beforeEach(testCase: TestCase) {
         super.beforeEach(testCase)
         DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { conn ->
@@ -48,6 +34,7 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
 
     companion object {
         private val DATABASE_TABLES = listOf("todo")
+        private const val REDIS_PORT = 6379
 
         val testNetwork: Network = Network.newNetwork()
 
@@ -60,7 +47,7 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
         }
 
         val valkey = GenericContainer("valkey/valkey:8.1-alpine").apply {
-            withExposedPorts(6379)
+            withExposedPorts(REDIS_PORT)
             waitingFor(Wait.forListeningPort())
         }
 
@@ -82,7 +69,7 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
             testApplication {
                 application {
                     val databaseConfig = DatabaseConfig(
-                        url = postgres.jdbcUrl,
+                        url = "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(POSTGRESQL_PORT)}/${postgres.databaseName}",
                         user = postgres.username,
                         password = postgres.password,
                         poolSize = 5,
@@ -90,7 +77,7 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
 
                     val redisConfig = RedisConfig(
                         host = valkey.host,
-                        port = valkey.getMappedPort(6379),
+                        port = valkey.getMappedPort(REDIS_PORT),
                     )
                     integrationTestModule(
                         databaseConfig = databaseConfig,

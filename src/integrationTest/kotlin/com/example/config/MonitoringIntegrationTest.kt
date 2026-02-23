@@ -18,7 +18,7 @@ class MonitoringIntegrationTest : IntegrationTestBase({
             // Cohort health checks run asynchronously, so the endpoint may return
             // 503 if checks haven't completed yet. Either status confirms the
             // endpoint is wired up; validate registered checks appear in the body.
-            body shouldContain "hikari_open_connections"
+            body shouldContain "r2dbc_connections"
             body shouldContain "thread_deadlocks"
         }
     }
@@ -32,7 +32,7 @@ class MonitoringIntegrationTest : IntegrationTestBase({
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
             body shouldContain "jvm_memory"
-            body shouldContain "hikaricp"
+            body shouldContain "r2dbc_pool_connections"
         }
     }
 })

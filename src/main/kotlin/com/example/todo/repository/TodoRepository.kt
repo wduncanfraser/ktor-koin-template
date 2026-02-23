@@ -1,7 +1,6 @@
 package com.example.todo.repository
 
 import com.example.core.domain.Page
-import com.example.core.repository.RepositoryConsts
 import com.example.core.repository.RepositoryResult
 import com.example.core.repository.mapExpectingOne
 import com.example.core.repository.runWrappingError
@@ -10,14 +9,15 @@ import com.example.todo.repository.mappers.TodoMapper
 import com.example.generated.db.tables.references.TODO
 import com.example.todo.domain.Todo
 import com.example.todo.domain.TodoForSave
-import kotlinx.coroutines.future.await
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
 import org.jooq.Condition
 import org.jooq.Configuration
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
-import java.time.Duration
 import java.util.UUID
 
 class TodoRepository {
@@ -43,9 +43,9 @@ class TodoRepository {
             .orderBy(TODO.CREATED_AT.asc())
             .limit(pageSize)
             .offset(offset)
-            .fetchAsync()
-            .thenApply { it.map(TodoMapper::toDomain) }
-            .await()
+            .asFlow()
+            .map(TodoMapper::toDomain)
+            .toList()
 
         Page(
             data = data,
@@ -64,14 +64,16 @@ class TodoRepository {
         ctx: DSLContext,
         id: UUID,
         lockRecords: Boolean = false,
-        lockWait: Duration = RepositoryConsts.DEFAULT_LOCK_TIMEOUT,
+        // TODO: Wait with R2DBC leads to failed queries, https://github.com/jOOQ/jOOQ/issues/19681
+        // lockWait: Duration = RepositoryConsts.DEFAULT_LOCK_TIMEOUT,
     ): RepositoryResult<Todo> = runWrappingError {
         ctx.selectFrom(TODO)
             .where(TODO.ID.eq(id))
             .apply {
                 if (lockRecords) {
                     this.forUpdate()
-                        .wait(lockWait.seconds.toInt())
+                    // TODO: Wait with R2DBC leads to failed queries
+                    //    .wait(lockWait.seconds.toInt())
                 }
             }
             .awaitFirstOrNull()
@@ -108,8 +110,7 @@ class TodoRepository {
         c.dsl()
             .deleteFrom(TODO)
             .where(TODO.ID.eq(id))
-            .executeAsync()
-            .await()
+            .awaitSingle()
     }.mapExpectingOne()
 
     /**

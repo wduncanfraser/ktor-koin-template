@@ -2,7 +2,6 @@
 cohort = "2.8.2"
 detekt = "2.0.0-alpha.2"
 fabrikt = "25.8.0"
-hikari = "7.0.2"
 jooq = "3.20.11"
 koin = "4.1.1"
 kover = "0.9.7"
@@ -16,15 +15,15 @@ ktor = "3.4.0"
 lettuce = "7.4.0.RELEASE"
 logback = "1.5.31"
 micrometer = "1.16.3"
-postgresql = "42.7.10"
+postgresql = "42.7.10" # Used in code generation tasks only
+r2dbc-pool = "1.0.2.RELEASE"
+r2dbc-postgresql = "1.1.1.RELEASE"
 testcontainers = "2.0.3"
 
 [libraries]
-cohort-hikari = { module = "com.sksamuel.cohort:cohort-hikari", version.ref = "cohort" }
 cohort-ktor = { module = "com.sksamuel.cohort:cohort-ktor", version.ref = "cohort" }
 cohort-micrometer = { module = "com.sksamuel.cohort:cohort-micrometer", version.ref = "cohort" }
 fabrikt = { module = "com.cjbooms:fabrikt", version.ref = "fabrikt" }
-hikari = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 jooq-kotlin = { module = "org.jooq:jooq-kotlin", version.ref = "jooq" }
 jooq-kotlin-coroutines = { module = "org.jooq:jooq-kotlin-coroutines", version.ref = "jooq" }
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
@@ -61,12 +60,13 @@ lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+r2dbc-pool = { module = "io.r2dbc:r2dbc-pool", version.ref = "r2dbc-pool" }
+r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql", version.ref = "testcontainers" }
 
 [bundles]
 cohort = [
-    "cohort-hikari",
     "cohort-ktor",
     "cohort-micrometer",
 ]
