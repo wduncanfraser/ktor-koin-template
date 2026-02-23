@@ -19,6 +19,7 @@ import org.testcontainers.containers.Network
 import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.postgresql.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer.POSTGRESQL_PORT
 import org.testcontainers.utility.MountableFile
 import java.sql.DriverManager
 import java.time.Duration
@@ -33,6 +34,7 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
 
     companion object {
         private val DATABASE_TABLES = listOf("todo")
+        private const val REDIS_PORT = 6379
 
         val testNetwork: Network = Network.newNetwork()
 
@@ -45,7 +47,7 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
         }
 
         val valkey = GenericContainer("valkey/valkey:8.1-alpine").apply {
-            withExposedPorts(6379)
+            withExposedPorts(REDIS_PORT)
             waitingFor(Wait.forListeningPort())
         }
 
@@ -67,7 +69,7 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
             testApplication {
                 application {
                     val databaseConfig = DatabaseConfig(
-                        url = "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(5432)}/${postgres.databaseName}",
+                        url = "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(POSTGRESQL_PORT)}/${postgres.databaseName}",
                         user = postgres.username,
                         password = postgres.password,
                         poolSize = 5,
@@ -75,7 +77,7 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
 
                     val redisConfig = RedisConfig(
                         host = valkey.host,
-                        port = valkey.getMappedPort(6379),
+                        port = valkey.getMappedPort(REDIS_PORT),
                     )
                     integrationTestModule(
                         databaseConfig = databaseConfig,

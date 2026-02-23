@@ -32,6 +32,7 @@ class MonitoringIntegrationTest : IntegrationTestBase({
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
             body shouldContain "jvm_memory"
+            body shouldContain "r2dbc_pool_connections"
         }
     }
 })

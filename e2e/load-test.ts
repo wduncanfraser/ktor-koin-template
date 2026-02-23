@@ -40,6 +40,15 @@ export default function() {
   );
   const todoId = createTodoResponse.data.id;
 
+  // Get Todo
+  const getTodoResponse = todoClient.getTodo(
+      todoId,
+      { tags: { name: "GetTodoURL" } },
+  );
+  check(getTodoResponse.response,
+      { "Get todo status is 200": (res) => res.status === 200 }
+  );
+
   // Update Todo
   const updateTodoRequest = {
     name: createTodoRequest.name,
@@ -62,6 +71,15 @@ export default function() {
   );
   check(invalidUpdateTodoResponse.response,
       { "Updating a non-existent todo is a 404": (res) => res.status === 404 }
+  );
+
+  // Get a todo that doesn't exist
+  const invalidGetTodoResponse = todoClient.getTodo(
+      invalidTodoId,
+      { tags: { name: "GetInvalidTodoURL" } },
+  );
+  check(invalidGetTodoResponse.response,
+      { "Getting a non-existent todo is a 404": (res) => res.status === 404 }
   );
 
   // List todos again

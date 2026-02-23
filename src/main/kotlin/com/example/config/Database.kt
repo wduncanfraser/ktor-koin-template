@@ -40,6 +40,7 @@ fun databaseModule(databaseConfig: DatabaseConfig) = module {
         val connectionFactory = ConnectionFactories.get(options)
         ConnectionPool(
             ConnectionPoolConfiguration.builder(connectionFactory)
+                .initialSize(databaseConfig.poolSize)
                 .maxSize(databaseConfig.poolSize)
                 .build()
         )
