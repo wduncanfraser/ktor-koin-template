@@ -1,4 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -55,9 +54,11 @@ dependencies {
     implementation(libs.bundles.kotlinx.coroutines)
     // Database
     implementation(libs.bundles.jooq)
-    jooqCodegen(libs.postgresql)
     implementation(libs.r2dbc.postgresql)
+    // NOTE: Pool must come after the postgres driver, otherwise fatJar can break due to ServiceLoader discovery
+    // being classpath-order sensitive
     implementation(libs.r2dbc.pool)
+    jooqCodegen(libs.postgresql)
     // Redis
     implementation(libs.lettuce.core)
     // Types
@@ -195,13 +196,6 @@ tasks {
     check {
         @Suppress("UnstableApiUsage")
         dependsOn(testing.suites.named("integrationTest"))
-    }
-
-    // Fix issues arising form lettuce and ktor both including netty service files
-    withType<ShadowJar> {
-        mergeServiceFiles()
-        // Also handle Netty's native lib index files specifically
-        append("META-INF/io.netty.versions.properties")
     }
 }
 
