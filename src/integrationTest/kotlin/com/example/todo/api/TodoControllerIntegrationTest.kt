@@ -18,6 +18,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import java.util.UUID
@@ -26,7 +27,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
     context("POST /api/v1/todos") {
         test("creates a todo") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
 
                 val response = client.post(todosUrl()) {
                     contentType(ContentType.Application.Json)
@@ -45,12 +46,26 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
                 }
             }
         }
+
+        test("returns 302 for login redirect without a session cookie") {
+            withTestApplication {
+                val client = createTestClient { followRedirects = false }
+
+                val response = client.post(todosUrl()) {
+                    contentType(ContentType.Application.Json)
+                    setBody(CreateTodoRequestContract(name = "Test todo"))
+                }
+
+                response.status shouldBe HttpStatusCode.Found
+                response.headers[HttpHeaders.Location] shouldBe "/login"
+            }
+        }
     }
 
     context("GET /api/v1/todos") {
         test("returns empty list when no todos exist") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
 
                 val response = client.get(todosUrl())
 
@@ -62,7 +77,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
         test("returns previously created todos") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
 
                 client.post(todosUrl()) {
                     contentType(ContentType.Application.Json)
@@ -83,7 +98,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
         test("completed=true returns only completed todos") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
 
                 val created = client.post(todosUrl()) {
                     contentType(ContentType.Application.Json)
@@ -111,7 +126,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
         test("completed=false returns only incomplete todos") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
 
                 val created = client.post(todosUrl()) {
                     contentType(ContentType.Application.Json)
@@ -139,7 +154,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
         test("pageSize=1 returns one item with correct pagination metadata") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
 
                 repeat(3) { i ->
                     client.post(todosUrl()) {
@@ -167,7 +182,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
         test("returns 400 when page is not an integer") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
 
                 val response = client.get(todosUrl()) {
                     parameter("page", "xyz")
@@ -183,7 +198,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
     context("GET /api/v1/todos/{id}") {
         test("returns a todo by id") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
 
                 val created = client.post(todosUrl()) {
                     contentType(ContentType.Application.Json)
@@ -204,7 +219,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
         test("returns 404 when todo does not exist") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
                 val id = UUID.randomUUID()
 
                 val response = client.get(todoUrl(id))
@@ -222,7 +237,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
     context("PUT /api/v1/todos/{id}") {
         test("updates name and marks complete") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
 
                 val created = client.post(todosUrl()) {
                     contentType(ContentType.Application.Json)
@@ -247,7 +262,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
         test("returns 404 when todo does not exist") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
                 val id = UUID.randomUUID()
 
                 val response = client.put(todoUrl(id)) {
@@ -268,7 +283,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
     context("DELETE /api/v1/todos/{id}") {
         test("removes a todo") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
 
                 val created = client.post(todosUrl()) {
                     contentType(ContentType.Application.Json)
@@ -286,7 +301,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
         test("returns 404 when todo does not exist") {
             withTestApplication {
-                val client = createTestClient()
+                val client = createAuthenticatedTestClient()
                 val id = UUID.randomUUID()
 
                 val response = client.delete(todoUrl(id))

@@ -19,6 +19,10 @@ import org.koin.ktor.ext.inject
 
 fun Application.configureSecurity() {
     val authConfig: AuthenticationConfig = property("authentication")
+    this.configureSecurity(authConfig)
+}
+
+fun Application.configureSecurity(authConfig: AuthenticationConfig) {
     val httpClient by inject<HttpClient>()
     val redisConnection by inject<StatefulRedisConnection<String, String>>()
     val discordOAuthProvider by inject<DiscordOAuthProvider>()
