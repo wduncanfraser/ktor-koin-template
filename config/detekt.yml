@@ -824,7 +824,7 @@ style:
   UnnecessaryReversed:
     active: false
   UnusedImport:
-    active: false
+    active: true
     additionalOperatorSet: []
   UnusedParameter:
     active: true
@@ -884,6 +884,6 @@ style:
     aliases: ['CanBeVal']
     ignoreLateinitVar: false
   WildcardImport:
-    active: false
+    active: true
     excludeImports:
-    - 'java.util.*'
+    - 'io.ktor.*'

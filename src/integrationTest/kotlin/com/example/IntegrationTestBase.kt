@@ -2,25 +2,24 @@ package com.example
 
 import com.example.authn.RedisSessionStorage
 import com.example.authn.UserSession
+import com.example.config.AuthenticationConfig
 import com.example.config.DatabaseConfig
+import com.example.config.OAuthConfig
 import com.example.config.RedisConfig
+import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.core.test.TestCase
-import io.ktor.client.HttpClient
-import io.ktor.client.HttpClientConfig
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.request.header
-import io.ktor.client.plugins.logging.DEFAULT
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logger
-import io.ktor.client.plugins.logging.Logging
-import io.ktor.http.HttpHeaders
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.sessions.SessionTransportTransformerMessageAuthentication
-import io.ktor.server.testing.ApplicationTestBuilder
-import io.ktor.server.testing.testApplication
-import io.ktor.util.hex
+import io.ktor.client.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.*
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.sessions.*
+import io.ktor.server.testing.*
+import io.ktor.util.*
 import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.get
@@ -37,7 +36,53 @@ import java.util.UUID
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 
-abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body) {
+abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : FunSpec() {
+    private lateinit var testApp: TestApplication
+
+    val application: Application get() = testApp.application
+
+    init {
+        body()
+    }
+
+    override suspend fun beforeSpec(spec: Spec) {
+        super.beforeSpec(spec)
+        testApp = TestApplication {
+            application {
+                val databaseConfig = DatabaseConfig(
+                    url = "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(POSTGRESQL_PORT)}/${postgres.databaseName}",
+                    user = postgres.username,
+                    password = postgres.password,
+                    poolSize = 5,
+                )
+                val redisConfig = RedisConfig(
+                    host = valkey.host,
+                    port = valkey.getMappedPort(REDIS_PORT),
+                )
+                val authConfig = AuthenticationConfig(
+                    sessionCookieName = TEST_SESSION_COOKIE_NAME,
+                    sessionSigningKey = TEST_SESSION_SIGNING_KEY,
+                    oAuth = OAuthConfig(
+                        callbackUrl = "",
+                        clientId = "",
+                        clientSecret = ""
+                    )
+                )
+                integrationTestModule(
+                    databaseConfig = databaseConfig,
+                    redisConfig = redisConfig,
+                    authConfig = authConfig,
+                )
+            }
+        }
+        testApp.start()
+    }
+
+    override suspend fun afterSpec(spec: Spec) {
+        super.afterSpec(spec)
+        if (::testApp.isInitialized) testApp.stop()
+    }
+
     override suspend fun beforeEach(testCase: TestCase) {
         super.beforeEach(testCase)
         DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { conn ->
@@ -45,10 +90,44 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
         }
     }
 
+    fun createTestClient(configure: HttpClientConfig<*>.() -> Unit = {}): HttpClient {
+        return testApp.createClient {
+            install(ContentNegotiation) { json() }
+            install(Logging) {
+                logger = Logger.DEFAULT
+                level = LogLevel.INFO
+            }
+            configure()
+        }
+    }
+
+    suspend fun createAuthenticatedTestClient(
+        session: UserSession = defaultTestSession(),
+        configure: HttpClientConfig<*>.() -> Unit = {}
+    ): HttpClient {
+        val redisConnection = testApp.application.get<StatefulRedisConnection<String, String>>()
+        val storage = RedisSessionStorage(redisConnection)
+        val sessionId = UUID.randomUUID().toString()
+        storage.write(sessionId, Json.encodeToString(session))
+        val transformer = SessionTransportTransformerMessageAuthentication(hex(TEST_SESSION_SIGNING_KEY))
+        val signedCookieValue = transformer.transformWrite(sessionId)
+        return testApp.createClient {
+            install(ContentNegotiation) { json() }
+            install(Logging) {
+                logger = Logger.DEFAULT
+                level = LogLevel.INFO
+            }
+            defaultRequest {
+                header(HttpHeaders.Cookie, "$TEST_SESSION_COOKIE_NAME=$signedCookieValue")
+            }
+            configure()
+        }
+    }
+
     companion object {
         private val DATABASE_TABLES = listOf("todo")
         private const val REDIS_PORT = 6379
-        private const val TEST_SESSION_SIGNING_KEY_HEX = "0101010101010101010101010101010101010101010101010101010101010101"
+        private const val TEST_SESSION_SIGNING_KEY = "0101010101010101010101010101010101010101010101010101010101010101"
         const val TEST_SESSION_COOKIE_NAME = "test-session-cookie"
 
         val testNetwork: Network = Network.newNetwork()
@@ -86,74 +165,5 @@ abstract class IntegrationTestBase(body: FunSpec.() -> Unit = {}): FunSpec(body)
             refreshToken = null,
             expiration = Clock.System.now().plus(24.hours),
         )
-
-        fun withTestApplication(block: suspend ApplicationTestBuilder.() -> Unit) {
-            testApplication {
-                application {
-                    val databaseConfig = DatabaseConfig(
-                        url = "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(POSTGRESQL_PORT)}/${postgres.databaseName}",
-                        user = postgres.username,
-                        password = postgres.password,
-                        poolSize = 5,
-                    )
-
-                    val redisConfig = RedisConfig(
-                        host = valkey.host,
-                        port = valkey.getMappedPort(REDIS_PORT),
-                    )
-                    integrationTestModule(
-                        databaseConfig = databaseConfig,
-                        redisConfig = redisConfig,
-                        sessionCookieName = TEST_SESSION_COOKIE_NAME,
-                        sessionSigningKey = TEST_SESSION_SIGNING_KEY_HEX,
-                    )
-                }
-
-                block()
-            }
-        }
-
-        fun ApplicationTestBuilder.createTestClient(
-            configure: HttpClientConfig<*>.() -> Unit = {}
-        ): HttpClient {
-            return createClient {
-                install(ContentNegotiation) { json() }
-
-                install(Logging) {
-                    logger = Logger.DEFAULT
-                    level = LogLevel.INFO
-                }
-
-                // Apply additional configuration
-                configure()
-            }
-        }
-
-        suspend fun ApplicationTestBuilder.createAuthenticatedTestClient(
-            session: UserSession = defaultTestSession(),
-            configure: HttpClientConfig<*>.() -> Unit = {}
-        ): HttpClient {
-            startApplication()
-            val redisConnection = application.get<StatefulRedisConnection<String, String>>()
-            val storage = RedisSessionStorage(redisConnection)
-            val sessionId = UUID.randomUUID().toString()
-            storage.write(sessionId, Json.encodeToString(session))
-            val transformer = SessionTransportTransformerMessageAuthentication(hex(TEST_SESSION_SIGNING_KEY_HEX))
-            val signedCookieValue = transformer.transformWrite(sessionId)
-            return createClient {
-                install(ContentNegotiation) { json() }
-
-                install(Logging) {
-                    logger = Logger.DEFAULT
-                    level = LogLevel.INFO
-                }
-
-                defaultRequest {
-                    header(HttpHeaders.Cookie, "$TEST_SESSION_COOKIE_NAME=$signedCookieValue")
-                }
-
-                configure()
-            }
-        }
     }
 }

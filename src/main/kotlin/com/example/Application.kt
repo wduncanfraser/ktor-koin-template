@@ -1,9 +1,14 @@
 package com.example
 
-import com.example.config.*
+import com.example.config.apiRoutes
+import com.example.config.configureCors
+import com.example.config.configureKoin
+import com.example.config.configureMonitoring
+import com.example.config.configureSecurity
+import com.example.config.configureStatusPages
+import com.example.config.warmupDatabase
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
@@ -38,8 +43,6 @@ fun Application.module() {
 
     routing {
         swaggerUI(path = "swagger", swaggerFile = "openapi/todo.yaml")
-        authenticate("auth-session") {
-            apiRoutes()
-        }
+        apiRoutes()
     }
 }
