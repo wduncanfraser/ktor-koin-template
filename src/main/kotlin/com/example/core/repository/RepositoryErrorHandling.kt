@@ -10,6 +10,7 @@ import com.github.michaelbull.result.recoverIf
 import com.github.michaelbull.result.runCatching
 import com.github.michaelbull.result.toErrorIfNull
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.jooq.exception.DataAccessException
 import org.jooq.exception.IntegrityConstraintViolationException
 
 val logger = KotlinLogging.logger {}
@@ -27,6 +28,7 @@ inline fun <V> runWrappingError(block: () -> V): RepositoryResult<V> = runCatchi
     logger.debug { "runWrappingError: $it" }
     when (it) {
         is IntegrityConstraintViolationException -> RepositoryError.RecordConstraintViolation(it)
+        is DataAccessException if it.sqlState() == "55P03" -> RepositoryError.LockTimeout(it)
         else -> RepositoryError.UnhandledException(it)
     }
 }

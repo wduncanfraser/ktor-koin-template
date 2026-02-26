@@ -1,6 +1,7 @@
 package com.example.todo.repository
 
 import com.example.core.domain.Page
+import com.example.core.repository.RepositoryConsts
 import com.example.core.repository.RepositoryResult
 import com.example.core.repository.mapExpectingOne
 import com.example.core.repository.runWrappingError
@@ -18,6 +19,7 @@ import org.jooq.Condition
 import org.jooq.Configuration
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
+import java.time.Duration
 import java.util.UUID
 
 class TodoRepository {
@@ -64,9 +66,13 @@ class TodoRepository {
         ctx: DSLContext,
         id: UUID,
         lockRecords: Boolean = false,
-        // TODO: Wait with R2DBC leads to failed queries, https://github.com/jOOQ/jOOQ/issues/19681
-        // lockWait: Duration = RepositoryConsts.DEFAULT_LOCK_TIMEOUT,
+        lockWait: Duration = RepositoryConsts.DEFAULT_LOCK_TIMEOUT,
     ): RepositoryResult<Todo> = runWrappingError {
+        // TODO: Wait with R2DBC leads to failed queries, https://github.com/jOOQ/jOOQ/issues/19681
+        //  Workaround is to set lock_timeout as a separate statement
+        if (lockRecords) {
+            ctx.setLocal("lock_timeout", DSL.inline(lockWait.toMillis().toString())).awaitFirstOrNull()
+        }
         ctx.selectFrom(TODO)
             .where(TODO.ID.eq(id))
             .apply {

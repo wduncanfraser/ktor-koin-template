@@ -15,6 +15,11 @@ sealed class RepositoryError {
     data class RecordConstraintViolation(val t: Throwable) : RepositoryError()
 
     /**
+     * Error type used when a lock wait timeout is exceeded
+     */
+    data class LockTimeout(val t: Throwable) : RepositoryError()
+
+    /**
      * Error type used when an unexpected exception is thrown
      */
     data class UnhandledException(val t: Throwable) : RepositoryError()
