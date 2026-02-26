@@ -106,6 +106,7 @@ class TodoService(
                 }
 
                 is RepositoryError.RecordConstraintViolation -> TodoServiceError.UnhandledServiceError(this.t)
+                is RepositoryError.LockTimeout -> TodoServiceError.UnhandledServiceError(this.t)
                 is RepositoryError.UnhandledException -> TodoServiceError.UnhandledServiceError(this.t)
             }
         }
