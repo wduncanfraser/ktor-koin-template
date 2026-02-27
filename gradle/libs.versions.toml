@@ -15,6 +15,7 @@ ktor = "3.4.0"
 lettuce = "7.4.0.RELEASE"
 logback = "1.5.32"
 micrometer = "1.16.3"
+netty = "4.2.10.Final"
 postgresql = "42.7.10" # Used in code generation tasks only
 r2dbc-pool = "1.0.2.RELEASE"
 r2dbc-postgresql = "1.1.1.RELEASE"
@@ -60,6 +61,7 @@ ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref 
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+netty-bom = { module = "io.netty:netty-bom", version.ref = "netty" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 r2dbc-pool = { module = "io.r2dbc:r2dbc-pool", version.ref = "r2dbc-pool" }
 r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }

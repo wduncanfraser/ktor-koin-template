@@ -70,8 +70,9 @@ dependencies {
     // Logging
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.logback.classic)
-    // Tests
-    testImplementation(libs.bundles.kotest)
+
+    // Transitive dependency bumps for CVE fixes
+    implementation(enforcedPlatform(libs.netty.bom))
 }
 
 kotlin {
@@ -85,6 +86,10 @@ testing {
         @Suppress("UnstableApiUsage")
         val test by getting(JvmTestSuite::class) {
             useJUnitJupiter()
+
+            dependencies {
+                implementation.bundle(libs.bundles.kotest)
+            }
         }
 
         @Suppress("UnstableApiUsage")
