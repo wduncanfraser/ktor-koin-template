@@ -18,6 +18,7 @@ class MonitoringIntegrationTest : IntegrationTestBase({
         // 503 if checks haven't completed yet. Either status confirms the
         // endpoint is wired up; validate registered checks appear in the body.
         body shouldContain "r2dbc_connections"
+        body shouldContain "redis"
         body shouldContain "thread_deadlocks"
     }
 
@@ -29,6 +30,7 @@ class MonitoringIntegrationTest : IntegrationTestBase({
         response.status shouldBe HttpStatusCode.OK
         val body = response.bodyAsText()
         body shouldContain "jvm_memory"
+        body shouldContain "lettuce_command_firstresponse_seconds_max"
         body shouldContain "r2dbc_pool_connections"
     }
 })
