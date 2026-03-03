@@ -44,7 +44,7 @@ fun Application.configureMonitoring() {
     val healthChecks = HealthCheckRegistry(Dispatchers.Default) {
         // Alert if we have no open R2DBC pool connections
         register(ConnectionPoolMinAllocated(pool, 1))
-        // Ensure redis is connecting succesfully
+        // Ensure redis is connecting successfully
         register(RedisHealthCheck(redisConnection))
         // Ensure threads aren't deadlocked
         register(ThreadDeadlockHealthCheck())
@@ -58,7 +58,7 @@ fun Application.configureMonitoring() {
         registry = prometheusRegistry
     }
 
-    // Bind our healthchecks to prometheus so we get metrics on failing checks
+    // Bind our health checks to prometheus so we get metrics on failing checks
     CohortMetrics(healthChecks).bindTo(prometheusRegistry)
     // Bind R2DBC connection pool gauges to Prometheus
     pool.bindTo(prometheusRegistry)
