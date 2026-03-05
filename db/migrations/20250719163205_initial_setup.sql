@@ -12,7 +12,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 
-    NEW.modified_at = CURRENT_TIMESTAMP;
+    NEW.updated_at = CURRENT_TIMESTAMP;
 
 RETURN NEW;
 END

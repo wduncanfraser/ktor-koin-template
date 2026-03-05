@@ -52,7 +52,7 @@ CREATE FUNCTION util.f_update_standard_modified_fields() RETURNS trigger
     AS $$
 BEGIN
 
-    NEW.modified_at = CURRENT_TIMESTAMP;
+    NEW.updated_at = CURRENT_TIMESTAMP;
 
 RETURN NEW;
 END
@@ -88,7 +88,8 @@ CREATE TABLE public.todo (
     name text NOT NULL,
     completed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    modified_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    user_id text NOT NULL
 );
 
 
@@ -128,10 +129,17 @@ COMMENT ON COLUMN public.todo.created_at IS 'The date / time that this record wa
 
 
 --
--- Name: COLUMN todo.modified_at; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN todo.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.todo.modified_at IS 'The date / time that this record was last modified.';
+COMMENT ON COLUMN public.todo.updated_at IS 'The date / time that this record was last updated.';
+
+
+--
+-- Name: COLUMN todo.user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.todo.user_id IS 'The id of the user who owns this todo item.';
 
 
 --
@@ -148,6 +156,13 @@ ALTER TABLE ONLY public.schema_migrations
 
 ALTER TABLE ONLY public.todo
     ADD CONSTRAINT todo_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_todo_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_todo_user_id ON public.todo USING btree (user_id);
 
 
 --
@@ -171,4 +186,5 @@ CREATE TRIGGER trg_table_modified BEFORE UPDATE ON public.todo FOR EACH ROW EXEC
 INSERT INTO public.schema_migrations (version) VALUES
     ('20250719163205'),
     ('20250719163501'),
-    ('20250719174315');
+    ('20250719174315'),
+    ('20260304000000');

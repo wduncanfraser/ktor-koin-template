@@ -25,12 +25,13 @@ class TodoService(
      * Runs in a transaction to ensure list and count are consistent.
      */
     suspend fun listTodos(
+        userId: String,
         pageSize: Int,
         page: Int,
         completed: Boolean? = null,
     ): TodoServiceResult<Page<Todo>> {
         return todoRepository
-            .list(ctx, pageSize, page, completed)
+            .list(ctx, userId, pageSize, page, completed)
             .mapError { it.toServiceError() }
     }
 
@@ -38,8 +39,8 @@ class TodoService(
      * Get a single [Todo] by [id].
      * Returns [TodoServiceError.TodoNotFound] if no [Todo] was found.
      */
-    suspend fun getTodo(id: UUID): TodoServiceResult<Todo> {
-        return todoRepository.getById(ctx, id)
+    suspend fun getTodo(userId: String, id: UUID): TodoServiceResult<Todo> {
+        return todoRepository.getById(ctx, userId, id)
             .mapError { it.toServiceError(TodoServiceError.TodoNotFound(id)) }
     }
 
@@ -47,9 +48,10 @@ class TodoService(
      * Create a new [Todo] from a [TodoForCreate].
      */
     suspend fun createTodo(
-        todoForCreate: TodoForCreate
+        userId: String,
+        todoForCreate: TodoForCreate,
     ): TodoServiceResult<Todo> {
-        val todo = todoForCreate.toPersistenceModel()
+        val todo = todoForCreate.toPersistenceModel(userId)
         return ctx.resultTransactionCoroutine { c ->
             todoRepository.upsert(c, todo)
                 .mapError { it.toServiceError() }
@@ -61,10 +63,11 @@ class TodoService(
      * Completed date is only set if not already completed.
      */
     suspend fun updateTodo(
-        todoForUpdate: TodoForUpdate
+        userId: String,
+        todoForUpdate: TodoForUpdate,
     ): TodoServiceResult<Todo> = ctx.resultTransactionCoroutine { c ->
         coroutineBinding {
-            val todo = todoRepository.getById(c.dsl(), todoForUpdate.id, lockRecords = true)
+            val todo = todoRepository.getById(c.dsl(), userId, todoForUpdate.id, lockRecords = true)
                 .mapError {
                     it.toServiceError(notFoundError = TodoServiceError.TodoNotFound(todoForUpdate.id))
                 }
@@ -83,9 +86,10 @@ class TodoService(
      * Delete an existing [Todo].
      */
     suspend fun deleteTodo(
-        id: UUID
+        userId: String,
+        id: UUID,
     ): Result<Unit, TodoServiceError> = ctx.resultTransactionCoroutine { c ->
-        todoRepository.delete(c, id)
+        todoRepository.delete(c, userId, id)
             .mapError { it.toServiceError(TodoServiceError.TodoNotFound(id)) }
     }
 

@@ -5,6 +5,7 @@ package com.example.generated.db.tables
 
 
 import com.example.generated.db.Public
+import com.example.generated.db.indexes.IDX_TODO_USER_ID
 import com.example.generated.db.keys.TODO_PKEY
 import com.example.generated.db.tables.records.TodoRecord
 
@@ -12,10 +13,12 @@ import java.time.Instant
 import java.util.UUID
 
 import kotlin.collections.Collection
+import kotlin.collections.List
 
 import org.jooq.Condition
 import org.jooq.Field
 import org.jooq.ForeignKey
+import org.jooq.Index
 import org.jooq.InverseForeignKey
 import org.jooq.Name
 import org.jooq.PlainSQL
@@ -96,10 +99,16 @@ open class Todo(
     val CREATED_AT: TableField<TodoRecord, Instant?> = createField(DSL.name("created_at"), SQLDataType.INSTANT.nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.INSTANT)), this, "The date / time that this record was created.")
 
     /**
-     * The column <code>public.todo.modified_at</code>. The date / time that
-     * this record was last modified.
+     * The column <code>public.todo.updated_at</code>. The date / time that this
+     * record was last updated.
      */
-    val MODIFIED_AT: TableField<TodoRecord, Instant?> = createField(DSL.name("modified_at"), SQLDataType.INSTANT.nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.INSTANT)), this, "The date / time that this record was last modified.")
+    val UPDATED_AT: TableField<TodoRecord, Instant?> = createField(DSL.name("updated_at"), SQLDataType.INSTANT.nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.INSTANT)), this, "The date / time that this record was last updated.")
+
+    /**
+     * The column <code>public.todo.user_id</code>. The id of the user who owns
+     * this todo item.
+     */
+    val USER_ID: TableField<TodoRecord, String?> = createField(DSL.name("user_id"), SQLDataType.CLOB.nullable(false), this, "The id of the user who owns this todo item.")
 
     private constructor(alias: Name, aliased: Table<TodoRecord>?): this(alias, null, null, null, aliased, null, null)
     private constructor(alias: Name, aliased: Table<TodoRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, null, aliased, parameters, null)
@@ -120,6 +129,7 @@ open class Todo(
      */
     constructor(): this(DSL.name("todo"), null)
     override fun getSchema(): Schema? = if (aliased()) null else Public.PUBLIC
+    override fun getIndexes(): List<Index> = listOf(IDX_TODO_USER_ID)
     override fun getPrimaryKey(): UniqueKey<TodoRecord> = TODO_PKEY
     override fun `as`(alias: String): Todo = Todo(DSL.name(alias), this)
     override fun `as`(alias: Name): Todo = Todo(alias, this)

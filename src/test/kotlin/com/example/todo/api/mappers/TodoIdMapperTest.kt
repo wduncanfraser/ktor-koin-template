@@ -1,6 +1,7 @@
 package com.example.todo.api.mappers
 
 import com.example.core.api.exceptions.ProblemDetailsException
+import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -22,7 +23,9 @@ class TodoIdMapperTest : FunSpec({
             TodoIdMapper.toDomain("not-a-uuid")
         }
 
-        exception.statusCode shouldBe HttpStatusCode.NotFound
-        exception.message shouldBe "Todo not found: todoId=not-a-uuid"
+        assertSoftly(exception) {
+            statusCode shouldBe HttpStatusCode.NotFound
+            message shouldBe "Todo not found: todoId=not-a-uuid"
+        }
     }
 })

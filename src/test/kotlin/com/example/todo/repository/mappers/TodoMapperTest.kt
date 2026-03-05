@@ -2,6 +2,7 @@ package com.example.todo.repository.mappers
 
 import com.example.generated.db.tables.records.TodoRecord
 import com.example.todo.domain.TodoForSave
+import io.kotest.assertions.assertSoftly
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.Instant as JavaInstant
@@ -20,17 +21,21 @@ class TodoMapperTest : FunSpec({
             id = id,
             name = "Buy groceries",
             completedAt = null,
+            userId = "test-user",
             createdAt = fixedInstant,
-            modifiedAt = fixedInstant,
+            updatedAt = fixedInstant,
         )
 
         val result = TodoMapper.toDomain(record)
 
-        result.id shouldBe id
-        result.name shouldBe "Buy groceries"
-        result.completedAt shouldBe null
-        result.createdAt shouldBe fixedInstant.toKotlinInstant()
-        result.modifiedAt shouldBe fixedInstant.toKotlinInstant()
+        assertSoftly(result) {
+            this.id shouldBe id
+            name shouldBe "Buy groceries"
+            completedAt shouldBe null
+            userId shouldBe "test-user"
+            createdAt shouldBe fixedInstant.toKotlinInstant()
+            updatedAt shouldBe fixedInstant.toKotlinInstant()
+        }
     }
 
     test("toDomain maps completedAt when present") {
@@ -39,8 +44,9 @@ class TodoMapperTest : FunSpec({
             id = UUID.randomUUID(),
             name = "Done task",
             completedAt = completedAt,
+            userId = "test-user",
             createdAt = fixedInstant,
-            modifiedAt = fixedInstant,
+            updatedAt = fixedInstant,
         )
 
         val result = TodoMapper.toDomain(record)
@@ -55,13 +61,17 @@ class TodoMapperTest : FunSpec({
             id = id,
             name = "Write tests",
             completedAt = kotlinInstant,
+            userId = "test-user",
         )
 
         val result = TodoMapper.toRecord(todo)
 
-        result.id shouldBe id
-        result.name shouldBe "Write tests"
-        result.completedAt shouldBe kotlinInstant.toJavaInstant()
+        assertSoftly(result) {
+            this.id shouldBe id
+            name shouldBe "Write tests"
+            completedAt shouldBe kotlinInstant.toJavaInstant()
+            userId shouldBe "test-user"
+        }
     }
 
     test("toRecord maps null completedAt") {
@@ -69,6 +79,7 @@ class TodoMapperTest : FunSpec({
             id = UUID.randomUUID(),
             name = "Incomplete task",
             completedAt = null,
+            userId = "test-user",
         )
 
         val result = TodoMapper.toRecord(todo)

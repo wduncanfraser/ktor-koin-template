@@ -279,6 +279,80 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
             }
         }
     }
+    context("user isolation") {
+        test("listTodos only returns todos belonging to the authenticated user") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+
+            clientA.post(todosUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User A - First"))
+            }
+            clientA.post(todosUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User A - Second"))
+            }
+            clientB.post(todosUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User B - First"))
+            }
+
+            val responseA = clientA.get(todosUrl())
+            val responseB = clientB.get(todosUrl())
+
+            responseA.status shouldBe HttpStatusCode.OK
+            responseB.status shouldBe HttpStatusCode.OK
+            responseA.body<ListTodosResponseContract>().data shouldHaveSize 2
+            responseB.body<ListTodosResponseContract>().data shouldHaveSize 1
+        }
+
+        test("getTodo returns 404 for a todo belonging to another user") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+
+            val created = clientA.post(todosUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User A todo"))
+            }.body<TodoResponseContract>()
+
+            val response = clientB.get(todoUrl(created.id))
+
+            response.status shouldBe HttpStatusCode.NotFound
+        }
+
+        test("updateTodo returns 404 for a todo belonging to another user") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+
+            val created = clientA.post(todosUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User A todo"))
+            }.body<TodoResponseContract>()
+
+            val response = clientB.put(todoUrl(created.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTodoRequestContract(name = "Updated", completed = true))
+            }
+
+            response.status shouldBe HttpStatusCode.NotFound
+        }
+
+        test("deleteTodo returns 404 for a todo belonging to another user") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+
+            val created = clientA.post(todosUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User A todo"))
+            }.body<TodoResponseContract>()
+
+            val deleteResponse = clientB.delete(todoUrl(created.id))
+            deleteResponse.status shouldBe HttpStatusCode.NotFound
+
+            val getResponse = clientA.get(todoUrl(created.id))
+            getResponse.status shouldBe HttpStatusCode.OK
+        }
+    }
 }) {
     companion object {
         const val TODOS_URL = "/api/v1/todos"

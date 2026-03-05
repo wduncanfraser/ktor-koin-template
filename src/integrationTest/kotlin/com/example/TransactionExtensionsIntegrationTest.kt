@@ -17,13 +17,13 @@ class TransactionExtensionsIntegrationTest : IntegrationTestBase({
         val id = UUID.randomUUID()
 
         val result = ctx.resultTransactionCoroutine { c ->
-            repository.upsert(c, TodoForSave(id = id, name = "Rollback test", completedAt = null))
+            repository.upsert(c, TodoForSave(id = id, name = "Rollback test", completedAt = null, userId = "test-user"))
             Err(RepositoryError.RecordNotFound)
         }
 
         result shouldBe Err(RepositoryError.RecordNotFound)
 
-        val afterRollback = repository.getById(ctx, id)
+        val afterRollback = repository.getById(ctx, "test-user", id)
         afterRollback shouldBe Err(RepositoryError.RecordNotFound)
     }
 
@@ -34,12 +34,13 @@ class TransactionExtensionsIntegrationTest : IntegrationTestBase({
 
         shouldThrow<RuntimeException> {
             ctx.resultTransactionCoroutine { c ->
-                repository.upsert(c, TodoForSave(id = id, name = "Rollback test", completedAt = null))
+                val todo = TodoForSave(id = id, name = "Rollback test", completedAt = null, userId = "test-user")
+                repository.upsert(c, todo)
                 throw RuntimeException("Simulated failure")
             }
         }
 
-        val afterRollback = repository.getById(ctx, id)
+        val afterRollback = repository.getById(ctx, "test-user", id)
         afterRollback shouldBe Err(RepositoryError.RecordNotFound)
     }
 
@@ -49,12 +50,12 @@ class TransactionExtensionsIntegrationTest : IntegrationTestBase({
         val id = UUID.randomUUID()
 
         val result = ctx.resultTransactionCoroutine { c ->
-            repository.upsert(c, TodoForSave(id = id, name = "Commit test", completedAt = null))
+            repository.upsert(c, TodoForSave(id = id, name = "Commit test", completedAt = null, userId = "test-user"))
         }
 
         result.isOk shouldBe true
 
-        val afterCommit = repository.getById(ctx, id)
+        val afterCommit = repository.getById(ctx, "test-user", id)
         afterCommit.isOk shouldBe true
     }
 })
