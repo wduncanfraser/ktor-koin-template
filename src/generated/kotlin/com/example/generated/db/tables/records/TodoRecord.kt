@@ -36,7 +36,7 @@ open class TodoRecord() : UpdatableRecordImpl<TodoRecord>(Todo.TODO) {
         set(value): Unit = set(3, value)
         get(): Instant? = get(3) as Instant?
 
-    open var modifiedAt: Instant?
+    open var updatedAt: Instant?
         set(value): Unit = set(4, value)
         get(): Instant? = get(4) as Instant?
 
@@ -53,12 +53,12 @@ open class TodoRecord() : UpdatableRecordImpl<TodoRecord>(Todo.TODO) {
     /**
      * Create a detached, initialised TodoRecord
      */
-    constructor(id: UUID? = null, name: String? = null, completedAt: Instant? = null, createdAt: Instant? = null, modifiedAt: Instant? = null, userId: String? = null): this() {
+    constructor(id: UUID? = null, name: String? = null, completedAt: Instant? = null, createdAt: Instant? = null, updatedAt: Instant? = null, userId: String? = null): this() {
         this.id = id
         this.name = name
         this.completedAt = completedAt
         this.createdAt = createdAt
-        this.modifiedAt = modifiedAt
+        this.updatedAt = updatedAt
         this.userId = userId
         resetTouchedOnNotNull()
     }

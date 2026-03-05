@@ -52,7 +52,7 @@ CREATE FUNCTION util.f_update_standard_modified_fields() RETURNS trigger
     AS $$
 BEGIN
 
-    NEW.modified_at = CURRENT_TIMESTAMP;
+    NEW.updated_at = CURRENT_TIMESTAMP;
 
 RETURN NEW;
 END
@@ -88,7 +88,7 @@ CREATE TABLE public.todo (
     name text NOT NULL,
     completed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    modified_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     user_id text NOT NULL
 );
 
@@ -129,10 +129,10 @@ COMMENT ON COLUMN public.todo.created_at IS 'The date / time that this record wa
 
 
 --
--- Name: COLUMN todo.modified_at; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN todo.updated_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.todo.modified_at IS 'The date / time that this record was last modified.';
+COMMENT ON COLUMN public.todo.updated_at IS 'The date / time that this record was last updated.';
 
 
 --

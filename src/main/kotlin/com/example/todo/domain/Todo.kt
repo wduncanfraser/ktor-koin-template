@@ -13,7 +13,7 @@ data class Todo(
     val completedAt: Instant?,
     val userId: String,
     val createdAt: Instant,
-    val modifiedAt: Instant,
+    val updatedAt: Instant,
 ) {
     fun toPersistenceModel() = TodoForSave(
         id = id,

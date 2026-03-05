@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS public.todo (
     completed_at TIMESTAMPTZ NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    modified_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TRIGGER trg_table_modified BEFORE UPDATE ON public.todo FOR EACH ROW EXECUTE PROCEDURE util.f_update_standard_modified_fields();
@@ -18,7 +18,7 @@ COMMENT ON COLUMN public.todo.name IS 'The name for the todo record.';
 COMMENT ON COLUMN public.todo.completed_at IS 'The time the todo was marked as completed.';
 
 COMMENT ON COLUMN public.todo.created_at IS 'The date / time that this record was created.';
-COMMENT ON COLUMN public.todo.modified_at IS 'The date / time that this record was last modified.';
+COMMENT ON COLUMN public.todo.updated_at IS 'The date / time that this record was last updated.';
 
 -- migrate:down
 DROP TABLE IF EXISTS public.todo;

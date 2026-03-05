@@ -26,7 +26,7 @@ object TodoContractMapper {
         completed = todo.completedAt != null,
         completedAt = todo.completedAt,
         createdAt = todo.createdAt,
-        updatedAt = todo.modifiedAt,
+        updatedAt = todo.updatedAt,
     )
 
     fun toDomain(contract: CreateTodoRequestContract) = TodoForCreate(contract.name)

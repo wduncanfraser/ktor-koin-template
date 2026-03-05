@@ -19,7 +19,7 @@ object TodoMapper {
         completedAt = record.completedAt?.toKotlinInstant(),
         userId = record.userId!!,
         createdAt = record.createdAt!!.toKotlinInstant(),
-        modifiedAt = record.modifiedAt!!.toKotlinInstant(),
+        updatedAt = record.updatedAt!!.toKotlinInstant(),
     )
 
     /**

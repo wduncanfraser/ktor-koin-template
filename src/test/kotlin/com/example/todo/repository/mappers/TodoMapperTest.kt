@@ -22,7 +22,7 @@ class TodoMapperTest : FunSpec({
             completedAt = null,
             userId = "test-user",
             createdAt = fixedInstant,
-            modifiedAt = fixedInstant,
+            updatedAt = fixedInstant,
         )
 
         val result = TodoMapper.toDomain(record)
@@ -32,7 +32,7 @@ class TodoMapperTest : FunSpec({
         result.completedAt shouldBe null
         result.userId shouldBe "test-user"
         result.createdAt shouldBe fixedInstant.toKotlinInstant()
-        result.modifiedAt shouldBe fixedInstant.toKotlinInstant()
+        result.updatedAt shouldBe fixedInstant.toKotlinInstant()
     }
 
     test("toDomain maps completedAt when present") {
@@ -43,7 +43,7 @@ class TodoMapperTest : FunSpec({
             completedAt = completedAt,
             userId = "test-user",
             createdAt = fixedInstant,
-            modifiedAt = fixedInstant,
+            updatedAt = fixedInstant,
         )
 
         val result = TodoMapper.toDomain(record)

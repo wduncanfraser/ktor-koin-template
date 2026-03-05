@@ -99,10 +99,10 @@ open class Todo(
     val CREATED_AT: TableField<TodoRecord, Instant?> = createField(DSL.name("created_at"), SQLDataType.INSTANT.nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.INSTANT)), this, "The date / time that this record was created.")
 
     /**
-     * The column <code>public.todo.modified_at</code>. The date / time that
-     * this record was last modified.
+     * The column <code>public.todo.updated_at</code>. The date / time that this
+     * record was last updated.
      */
-    val MODIFIED_AT: TableField<TodoRecord, Instant?> = createField(DSL.name("modified_at"), SQLDataType.INSTANT.nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.INSTANT)), this, "The date / time that this record was last modified.")
+    val UPDATED_AT: TableField<TodoRecord, Instant?> = createField(DSL.name("updated_at"), SQLDataType.INSTANT.nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.INSTANT)), this, "The date / time that this record was last updated.")
 
     /**
      * The column <code>public.todo.user_id</code>. The id of the user who owns
