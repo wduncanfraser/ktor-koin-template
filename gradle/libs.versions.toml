@@ -24,6 +24,7 @@ testcontainers = "2.0.3"
 [libraries]
 cohort-ktor = { module = "com.sksamuel.cohort:cohort-ktor", version.ref = "cohort" }
 cohort-lettuce = { module = "com.sksamuel.cohort:cohort-lettuce", version.ref = "cohort" }
+cohort-logback = { module = "com.sksamuel.cohort:cohort-logback", version.ref = "cohort" }
 cohort-micrometer = { module = "com.sksamuel.cohort:cohort-micrometer", version.ref = "cohort" }
 fabrikt = { module = "com.cjbooms:fabrikt", version.ref = "fabrikt" }
 jooq-kotlin = { module = "org.jooq:jooq-kotlin", version.ref = "jooq" }
@@ -72,6 +73,7 @@ testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgr
 cohort = [
     "cohort-ktor",
     "cohort-lettuce",
+    "cohort-logback",
     "cohort-micrometer",
 ]
 
