@@ -132,7 +132,7 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
 
         val testNetwork: Network = Network.newNetwork()
 
-        val postgres = PostgreSQLContainer("postgres:17-alpine").apply {
+        val postgres = PostgreSQLContainer("postgres:18-alpine").apply {
             withNetwork(testNetwork)
             withNetworkAliases("db")
             withDatabaseName("todo")
