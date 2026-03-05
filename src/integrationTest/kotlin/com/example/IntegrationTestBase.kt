@@ -165,5 +165,12 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
             refreshToken = null,
             expiration = Clock.System.now().plus(24.hours),
         )
+
+        fun secondTestSession() = UserSession(
+            userId = "test-user-id-2",
+            accessToken = "test-access-token-2",
+            refreshToken = null,
+            expiration = Clock.System.now().plus(24.hours),
+        )
     }
 }

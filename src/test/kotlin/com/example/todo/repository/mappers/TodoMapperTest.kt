@@ -20,6 +20,7 @@ class TodoMapperTest : FunSpec({
             id = id,
             name = "Buy groceries",
             completedAt = null,
+            userId = "test-user",
             createdAt = fixedInstant,
             modifiedAt = fixedInstant,
         )
@@ -29,6 +30,7 @@ class TodoMapperTest : FunSpec({
         result.id shouldBe id
         result.name shouldBe "Buy groceries"
         result.completedAt shouldBe null
+        result.userId shouldBe "test-user"
         result.createdAt shouldBe fixedInstant.toKotlinInstant()
         result.modifiedAt shouldBe fixedInstant.toKotlinInstant()
     }
@@ -39,6 +41,7 @@ class TodoMapperTest : FunSpec({
             id = UUID.randomUUID(),
             name = "Done task",
             completedAt = completedAt,
+            userId = "test-user",
             createdAt = fixedInstant,
             modifiedAt = fixedInstant,
         )
@@ -55,6 +58,7 @@ class TodoMapperTest : FunSpec({
             id = id,
             name = "Write tests",
             completedAt = kotlinInstant,
+            userId = "test-user",
         )
 
         val result = TodoMapper.toRecord(todo)
@@ -62,6 +66,7 @@ class TodoMapperTest : FunSpec({
         result.id shouldBe id
         result.name shouldBe "Write tests"
         result.completedAt shouldBe kotlinInstant.toJavaInstant()
+        result.userId shouldBe "test-user"
     }
 
     test("toRecord maps null completedAt") {
@@ -69,6 +74,7 @@ class TodoMapperTest : FunSpec({
             id = UUID.randomUUID(),
             name = "Incomplete task",
             completedAt = null,
+            userId = "test-user",
         )
 
         val result = TodoMapper.toRecord(todo)

@@ -21,8 +21,9 @@ class TodoContractMapperTest : FunSpec({
             id = id,
             name = "Incomplete task",
             completedAt = null,
-            modifiedAt = fixedInstant,
+            userId = "test-user",
             createdAt = fixedInstant,
+            modifiedAt = fixedInstant,
         )
 
         val result = TodoContractMapper.toContract(todo)
@@ -40,8 +41,9 @@ class TodoContractMapperTest : FunSpec({
             id = UUID.randomUUID(),
             name = "Done task",
             completedAt = completedInstant,
-            modifiedAt = fixedInstant,
+            userId = "test-user",
             createdAt = fixedInstant,
+            modifiedAt = fixedInstant,
         )
 
         val result = TodoContractMapper.toContract(todo)
@@ -55,15 +57,17 @@ class TodoContractMapperTest : FunSpec({
             id = UUID.randomUUID(),
             name = "First",
             completedAt = null,
-            modifiedAt = fixedInstant,
+            userId = "test-user",
             createdAt = fixedInstant,
+            modifiedAt = fixedInstant,
         )
         val todo2 = Todo(
             id = UUID.randomUUID(),
             name = "Second",
             completedAt = completedInstant,
-            modifiedAt = fixedInstant,
+            userId = "test-user",
             createdAt = fixedInstant,
+            modifiedAt = fixedInstant,
         )
         val page = Page(
             data = listOf(todo1, todo2),

@@ -11,10 +11,12 @@ import com.example.generated.api.models.CreateTodoRequestContract
 import com.example.generated.api.models.ListTodosResponseContract
 import com.example.generated.api.models.TodoResponseContract
 import com.example.generated.api.models.UpdateTodoRequestContract
+import com.example.authn.UserSession
 import com.github.michaelbull.result.getOrThrow
 import com.github.michaelbull.result.map
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 
 class TodoController(
@@ -26,9 +28,10 @@ class TodoController(
         completed: Boolean?,
         call: TypedApplicationCall<ListTodosResponseContract>
     ) {
+        val userId = call.principal<UserSession>()!!.userId
         val pageSize = pageSize ?: DEFAULT_PAGE_SIZE
         val page = page ?: 1
-        val result = todoService.listTodos(pageSize, page, completed)
+        val result = todoService.listTodos(userId, pageSize, page, completed)
             .getOrThrow(::mapErrorToException)
         call.respondTyped(TodoContractMapper.toContract(result))
     }
@@ -37,7 +40,8 @@ class TodoController(
         todoId: String,
         call: TypedApplicationCall<TodoResponseContract>,
     ) {
-        val response = todoService.getTodo(TodoIdMapper.toDomain(todoId))
+        val userId = call.principal<UserSession>()!!.userId
+        val response = todoService.getTodo(userId, TodoIdMapper.toDomain(todoId))
             .map(TodoContractMapper::toContract)
             .getOrThrow(::mapErrorToException)
         call.respondTyped(response)
@@ -47,7 +51,8 @@ class TodoController(
         createTodoRequest: CreateTodoRequestContract,
         call: TypedApplicationCall<TodoResponseContract>
     ) {
-        val response = todoService.createTodo(TodoContractMapper.toDomain(createTodoRequest))
+        val userId = call.principal<UserSession>()!!.userId
+        val response = todoService.createTodo(userId, TodoContractMapper.toDomain(createTodoRequest))
             .map(TodoContractMapper::toContract)
             .getOrThrow(::mapErrorToException)
 
@@ -59,7 +64,8 @@ class TodoController(
         updateTodoRequest: UpdateTodoRequestContract,
         call: TypedApplicationCall<TodoResponseContract>
     ) {
-        val response = todoService.updateTodo(TodoContractMapper.toDomain(todoId, updateTodoRequest))
+        val userId = call.principal<UserSession>()!!.userId
+        val response = todoService.updateTodo(userId, TodoContractMapper.toDomain(todoId, updateTodoRequest))
             .map(TodoContractMapper::toContract)
             .getOrThrow(::mapErrorToException)
 
@@ -67,8 +73,10 @@ class TodoController(
     }
 
     override suspend fun deleteTodo(todoId: String, call: ApplicationCall) {
+        val userId = call.principal<UserSession>()!!.userId
         todoService.deleteTodo(
-            TodoIdMapper.toDomain(todoId)
+            userId = userId,
+            id = TodoIdMapper.toDomain(todoId),
         ).getOrThrow(::mapErrorToException)
 
         call.respond(HttpStatusCode.NoContent)
