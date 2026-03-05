@@ -1,6 +1,7 @@
 package com.example.config
 
 import com.example.IntegrationTestBase
+import io.kotest.assertions.assertSoftly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.request.*
@@ -17,20 +18,23 @@ class MonitoringIntegrationTest : IntegrationTestBase({
         // Cohort health checks run asynchronously, so the endpoint may return
         // 503 if checks haven't completed yet. Either status confirms the
         // endpoint is wired up; validate registered checks appear in the body.
-        body shouldContain "r2dbc_connections"
-        body shouldContain "redis"
-        body shouldContain "thread_deadlocks"
+        assertSoftly(body) {
+            shouldContain("r2dbc_connections")
+            shouldContain("redis")
+            shouldContain("thread_deadlocks")
+        }
     }
 
     test("GET /metrics returns Prometheus metrics") {
         val client = createTestClient()
 
         val response = client.get("/metrics")
-
         response.status shouldBe HttpStatusCode.OK
         val body = response.bodyAsText()
-        body shouldContain "jvm_memory"
-        body shouldContain "lettuce_command_firstresponse_seconds_max"
-        body shouldContain "r2dbc_pool_connections"
+        assertSoftly(body) {
+            shouldContain("jvm_memory")
+            shouldContain("lettuce_command_firstresponse_seconds_max")
+            shouldContain("r2dbc_pool_connections")
+        }
     }
 })

@@ -4,6 +4,7 @@ import com.example.core.domain.Page
 import com.example.generated.api.models.CreateTodoRequestContract
 import com.example.generated.api.models.UpdateTodoRequestContract
 import com.example.todo.domain.Todo
+import io.kotest.assertions.assertSoftly
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -28,12 +29,14 @@ class TodoContractMapperTest : FunSpec({
 
         val result = TodoContractMapper.toContract(todo)
 
-        result.id shouldBe id.toString()
-        result.name shouldBe "Incomplete task"
-        result.completed shouldBe false
-        result.completedAt shouldBe null
-        result.createdAt shouldBe fixedInstant
-        result.updatedAt shouldBe fixedInstant
+        assertSoftly(result) {
+            this.id shouldBe id.toString()
+            name shouldBe "Incomplete task"
+            completed shouldBe false
+            completedAt shouldBe null
+            createdAt shouldBe fixedInstant
+            updatedAt shouldBe fixedInstant
+        }
     }
 
     test("toContract maps Todo with completedAt") {
@@ -79,13 +82,15 @@ class TodoContractMapperTest : FunSpec({
 
         val result = TodoContractMapper.toContract(page)
 
-        result.data shouldHaveSize 2
-        result.data[0].name shouldBe "First"
-        result.data[1].name shouldBe "Second"
-        result.pagination.page shouldBe 1
-        result.pagination.pageSize shouldBe 20
-        result.pagination.totalRows shouldBe 2
-        result.pagination.totalPages shouldBe 1
+        assertSoftly(result) {
+            data shouldHaveSize 2
+            data[0].name shouldBe "First"
+            data[1].name shouldBe "Second"
+            pagination.page shouldBe 1
+            pagination.pageSize shouldBe 20
+            pagination.totalRows shouldBe 2
+            pagination.totalPages shouldBe 1
+        }
     }
 
     test("toDomain maps CreateTodoRequestContract") {
@@ -102,8 +107,10 @@ class TodoContractMapperTest : FunSpec({
 
         val result = TodoContractMapper.toDomain(id.toString(), contract)
 
-        result.id shouldBe id
-        result.name shouldBe "Updated"
-        result.completed shouldBe true
+        assertSoftly(result) {
+            this.id shouldBe id
+            name shouldBe "Updated"
+            completed shouldBe true
+        }
     }
 })
