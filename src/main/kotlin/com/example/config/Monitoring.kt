@@ -3,6 +3,7 @@ package com.example.config
 import com.sksamuel.cohort.Cohort
 import com.sksamuel.cohort.HealthCheckRegistry
 import com.sksamuel.cohort.lettuce.RedisHealthCheck
+import com.sksamuel.cohort.logback.LogbackManager
 import com.sksamuel.cohort.micrometer.CohortMetrics
 import com.sksamuel.cohort.threads.ThreadDeadlockHealthCheck
 import io.ktor.http.*
@@ -51,6 +52,9 @@ fun Application.configureMonitoring() {
     }
 
     install(Cohort) {
+        logManager = LogbackManager
+
+        // Health checks
         healthcheck("/health", healthChecks)
     }
 
