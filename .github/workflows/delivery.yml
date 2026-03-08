@@ -54,7 +54,7 @@ jobs:
     - name: Lint API contracts
       run: docker run --rm -v "$PWD":/spec redocly/cli lint --format=github-actions
 
-  lint:
+  kotlin-lint:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -148,3 +148,100 @@ jobs:
         context: .
         push: false
         tags: ${{ env.SERVICE_TAG }}
+
+  api-codegen:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Bundle API contracts
+      run: ./contracts/build.sh
+
+    - name: Setup JDK
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'temurin'
+        java-version: 25
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v5
+
+    - name: Generate API
+      run: ./gradlew generateApi
+
+    - name: Check for uncommitted changes
+      run: git diff --exit-code
+
+  db-codegen:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: todo
+        ports:
+        - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Run database migrations
+      run: |
+        docker run --rm --network host \
+          -v "$PWD/db":/db \
+          -e DATABASE_URL="postgres://postgres:admin@localhost:5432/todo?sslmode=disable" \
+          ghcr.io/amacneil/dbmate up
+
+    - name: Setup JDK
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'temurin'
+        java-version: 25
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v5
+
+    - name: Generate jOOQ classes
+      run: ./gradlew jooqCodegen
+
+    - name: Check for uncommitted changes
+      run: git diff --exit-code
+
+  required-pr-checks:
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-24.04
+    needs:
+    - yaml-lint
+    - github-actions-lint
+    - api-lint
+    - kotlin-lint
+    - test
+    - dependency-submission
+    - docker-build
+    - api-codegen
+    - db-codegen
+    permissions: {}
+
+    steps:
+    - name: Verify all checks passed or were skipped
+      env:
+        RESULTS: ${{ join(needs.*.result, ',') }}
+      run: |
+        if echo "$RESULTS" | grep -qE '(failure|cancelled)'; then
+          echo "One or more required checks failed or were cancelled"
+          exit 1
+        fi
+        echo "All required checks passed or were skipped"
