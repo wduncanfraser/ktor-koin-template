@@ -185,8 +185,6 @@ jobs:
         image: postgres:18-alpine
         env:
           POSTGRES_PASSWORD: admin
-        volumes:
-        - ${{ github.workspace }}/db/dev/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
         ports:
         - 5432:5432
         options: >-
@@ -197,6 +195,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+
+    # db/dev/init-db.sh cannot be mounted via the service container's volumes: field because
+    # service containers start before actions/checkout runs, so the workspace file doesn't
+    # exist yet and Docker creates a directory at the mount path instead of a file.
+    - name: Create todo role and database
+      run: |
+        psql -h localhost -U postgres -c "CREATE USER todo WITH PASSWORD 'todo';"
+        psql -h localhost -U postgres -c "CREATE DATABASE todo WITH OWNER todo;"
+      env:
+        PGPASSWORD: admin
 
     - name: Run database migrations
       run: |
@@ -218,7 +226,9 @@ jobs:
       run: ./gradlew jooqCodegen
 
     - name: Check for uncommitted changes
-      run: git diff --exit-code
+      # -I ignores hunks where all changed lines match the pattern.
+      # db/schema.sql contains pg_dump/database version comments that vary by environment.
+      run: git diff --exit-code -I '-- Dumped (from database|by pg_dump) version'
 
   required-pr-checks:
     if: ${{ always() && github.event_name == 'pull_request' }}
