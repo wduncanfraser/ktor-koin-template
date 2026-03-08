@@ -184,9 +184,9 @@ jobs:
       postgres:
         image: postgres:18-alpine
         env:
-          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: admin
-          POSTGRES_DB: todo
+        volumes:
+        - ${{ github.workspace }}/db/dev/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
         ports:
         - 5432:5432
         options: >-
