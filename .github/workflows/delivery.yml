@@ -52,7 +52,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: Lint API contracts
-      run: docker run --rm -v $PWD:/spec redocly/cli lint --format=github-actions
+      run: docker run --rm -v "$PWD":/spec redocly/cli lint --format=github-actions
 
   lint:
     runs-on: ubuntu-24.04
