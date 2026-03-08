@@ -133,9 +133,12 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      security-events: write   # upload SARIF to GitHub Security tab
+      actions: read            # required by upload-sarif on private repos
 
     steps:
     - uses: actions/checkout@v6
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
 
@@ -147,7 +150,24 @@ jobs:
       with:
         context: .
         push: false
+        load: true             # export to local daemon so Trivy can scan it
         tags: ${{ env.SERVICE_TAG }}
+
+    - name: Scan image
+      id: trivy
+      uses: aquasecurity/trivy-action@0.35.0
+      continue-on-error: true
+      with:
+        image-ref: ${{ env.SERVICE_TAG }}
+        format: sarif
+        output: trivy-results.sarif
+        severity: HIGH,CRITICAL
+
+    - name: Upload SARIF to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v4
+      if: always()
+      with:
+        sarif_file: trivy-results.sarif
 
   api-codegen:
     runs-on: ubuntu-24.04
