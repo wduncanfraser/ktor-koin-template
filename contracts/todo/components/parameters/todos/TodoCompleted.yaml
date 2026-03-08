@@ -1,0 +1,7 @@
+---
+name: completed
+in: query
+required: false
+schema:
+  type: boolean
+description: Filter for todos to only list completed vs incomplete records.

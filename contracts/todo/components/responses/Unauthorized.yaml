@@ -1,0 +1,6 @@
+---
+description: Unauthorized. The request requires authentication.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml

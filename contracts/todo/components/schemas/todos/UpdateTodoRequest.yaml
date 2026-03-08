@@ -1,0 +1,11 @@
+---
+type: object
+required:
+- name
+- completed
+properties:
+  name:
+    $ref: ./TodoName.yaml
+  completed:
+    type: boolean
+    description: Is the Todo completed.

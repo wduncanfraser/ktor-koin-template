@@ -1,0 +1,6 @@
+---
+description: An unexpected error occurred when processing the request.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/ProblemDetails.yaml

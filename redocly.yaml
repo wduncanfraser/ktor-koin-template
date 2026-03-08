@@ -1,0 +1,9 @@
+---
+apis:
+  todo@v1:
+    root: contracts/todo/openapi.yaml
+
+extends:
+- recommended
+rules:
+  no-unused-components: error
