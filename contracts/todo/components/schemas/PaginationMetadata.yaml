@@ -1,0 +1,21 @@
+---
+type: object
+required:
+- page
+- pageSize
+- totalPages
+- totalRows
+properties:
+  page:
+    type: integer
+    example: 1
+  pageSize:
+    type: integer
+    example: 20
+  totalPages:
+    type: integer
+    example: 100
+  totalRows:
+    type: integer
+    example: 1000
+description: Paginated Results with metadata describing the page

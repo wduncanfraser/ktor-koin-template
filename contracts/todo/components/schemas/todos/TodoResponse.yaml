@@ -1,0 +1,32 @@
+---
+type: object
+description: A todo item.
+required:
+- id
+- name
+- completed
+- createdAt
+- updatedAt
+properties:
+  id:
+    type: string
+  name:
+    $ref: ./TodoName.yaml
+  completed:
+    type: boolean
+    description: Is the Todo completed.
+  completedAt:
+    type: string
+    description: Date and time when the Todo was marked completed.
+    format: date-time
+  createdAt:
+    $ref: ../CreatedAt.yaml
+  updatedAt:
+    $ref: ../UpdatedAt.yaml
+example:
+  id: e3c205bd-7293-4fe0-9da9-8279a0e54ab1
+  name: Cook dinner
+  completed: true
+  completedAt: '2020-01-13T09:25:56Z'
+  createdAt: '2019-08-24T14:15:22Z'
+  updatedAt: '2020-01-13T09:25:56Z'

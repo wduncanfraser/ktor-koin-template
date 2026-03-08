@@ -1,0 +1,25 @@
+---
+openapi: 3.0.3
+info:
+  version: 0.1.0
+  title: Todo
+  description: Todo API for Ktor Template
+security:
+- SessionCookie: []
+servers:
+- url: http://localhost:8080/api/v1
+  description: Local Development server
+paths:
+  /todos:
+    $ref: paths/todos.yaml
+  /todos/{todo-id}:
+    $ref: paths/todos_{todo-id}.yaml
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: example-cookie-id
+      description: |-
+        Session cookie set after completing Discord OAuth 2.0 authentication.
+        Obtain a session by completing the OAuth flow at /login.

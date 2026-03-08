@@ -44,6 +44,16 @@ jobs:
         fail_level: warning
         level: warning
 
+  api-lint:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Lint API contracts
+      run: docker run --rm -v $PWD:/spec redocly/cli lint --format=github-actions
+
   lint:
     runs-on: ubuntu-24.04
     permissions:

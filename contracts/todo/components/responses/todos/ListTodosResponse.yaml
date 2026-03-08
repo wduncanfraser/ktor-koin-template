@@ -1,0 +1,15 @@
+---
+description: The list of Todos with pagination metadata.
+content:
+  application/json:
+    schema:
+      required:
+      - data
+      - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: ../../schemas/todos/TodoResponse.yaml
+        pagination:
+          $ref: ../../schemas/PaginationMetadata.yaml

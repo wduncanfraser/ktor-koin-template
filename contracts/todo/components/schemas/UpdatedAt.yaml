@@ -1,0 +1,5 @@
+---
+type: string
+description: Date and time which updates automatically when the resource is updated.
+format: date-time
+example: '2020-01-13T09:25:56Z'

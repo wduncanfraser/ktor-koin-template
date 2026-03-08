@@ -1,0 +1,5 @@
+---
+type: string
+description: Date and time which is set automatically when the resource is created.
+format: date-time
+example: '2019-08-24T14:15:22Z'

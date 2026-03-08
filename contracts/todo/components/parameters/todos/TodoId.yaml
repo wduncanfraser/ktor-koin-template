@@ -1,0 +1,7 @@
+---
+name: todo-id
+in: path
+description: The unique identifier of the Todo.
+required: true
+schema:
+  type: string

@@ -1,0 +1,70 @@
+---
+get:
+  summary: Get a todo
+  operationId: getTodo
+  tags:
+  - Todos
+  parameters:
+  - $ref: ../components/parameters/todos/TodoId.yaml
+  responses:
+    '200':
+      description: Todo was retrieved successfully.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/todos/TodoResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    default:
+      $ref: ../components/responses/UnexpectedError.yaml
+put:
+  summary: Update a todo
+  operationId: updateTodo
+  tags:
+  - Todos
+  parameters:
+  - $ref: ../components/parameters/todos/TodoId.yaml
+  requestBody:
+    required: true
+    description: The request body for updating a Todo.
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/todos/UpdateTodoRequest.yaml
+  responses:
+    '200':
+      description: Todo was updated successfully.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/todos/TodoResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    default:
+      $ref: ../components/responses/UnexpectedError.yaml
+delete:
+  summary: Delete a todo
+  operationId: deleteTodo
+  tags:
+  - Todos
+  parameters:
+  - $ref: ../components/parameters/todos/TodoId.yaml
+  responses:
+    '204':
+      description: Todo was deleted successfully.
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    default:
+      $ref: ../components/responses/UnexpectedError.yaml

@@ -171,7 +171,7 @@ tasks {
 
     val generateApi by registering(JavaExec::class) {
         group = "Fabrikt"
-        description = "Generate code from OpenAPI specification"
+        description = "Generate code from OpenAPI specification. Run contracts/build.sh first to rebundle contracts/todo/openapi.yaml → src/main/resources/openapi/todo.yaml after spec changes"
         inputs.files(apiFile)
         outputs.dir(generationDir)
         outputs.cacheIf { true }
