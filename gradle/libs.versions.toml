@@ -1,5 +1,5 @@
 [versions]
-cohort = "2.8.2"
+cohort = "2.8.3"
 detekt = "2.0.0-alpha.2"
 fabrikt = "26.1.0"
 jooq = "3.20.11"
