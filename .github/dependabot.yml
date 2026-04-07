@@ -5,11 +5,21 @@ updates:
   directory: "/"
   schedule:
     interval: "weekly"
+    day: "saturday"
+    time: "08:00"
+    timezone: "America/Chicago"
 - package-ecosystem: "gradle"
   directory: "/"
   schedule:
     interval: "weekly"
+    day: "saturday"
+    time: "08:00"
+    timezone: "America/Chicago"
+  open-pull-requests-limit: 20
 - package-ecosystem: "docker"
   directory: "/"
   schedule:
     interval: "weekly"
+    day: "saturday"
+    time: "08:00"
+    timezone: "America/Chicago"
