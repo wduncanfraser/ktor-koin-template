@@ -26,13 +26,14 @@ import org.jooq.QueryPart
 import org.jooq.Record
 import org.jooq.SQL
 import org.jooq.Schema
-import org.jooq.Select
 import org.jooq.Stringly
 import org.jooq.Table
 import org.jooq.TableField
+import org.jooq.TableLike
 import org.jooq.TableOptions
 import org.jooq.UniqueKey
 import org.jooq.impl.DSL
+import org.jooq.impl.Internal
 import org.jooq.impl.SQLDataType
 import org.jooq.impl.TableImpl
 
@@ -153,7 +154,7 @@ open class Todo(
     /**
      * Create an inline derived table from this table
      */
-    override fun where(condition: Condition?): Todo = Todo(qualifiedName, if (aliased()) this else null, condition)
+    override fun where(condition: Condition?): Todo = Todo(qualifiedName, if (aliased()) this else null, Internal.condition(this, condition))
 
     /**
      * Create an inline derived table from this table
@@ -193,10 +194,10 @@ open class Todo(
     /**
      * Create an inline derived table from this table
      */
-    override fun whereExists(select: Select<*>): Todo = where(DSL.exists(select))
+    override fun whereExists(select: TableLike<*>): Todo = where(DSL.exists(select))
 
     /**
      * Create an inline derived table from this table
      */
-    override fun whereNotExists(select: Select<*>): Todo = where(DSL.notExists(select))
+    override fun whereNotExists(select: TableLike<*>): Todo = where(DSL.notExists(select))
 }

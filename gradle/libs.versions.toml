@@ -1,21 +1,21 @@
 [versions]
 cohort = "2.8.3"
 detekt = "2.0.0-alpha.2"
-fabrikt = "26.1.0"
-jooq = "3.20.11"
+fabrikt = "26.2.2"
+jooq = "3.21.1"
 koin = "4.2.0"
-kover = "0.9.7"
+kover = "0.9.8"
 kotest = "6.1.11"
 kotlin = "2.3.20"
 kotlin-logging = "8.0.01"
 kotlin-result = "2.3.1"
 kotlinx-coroutines = "1.10.2"
 kotlinx-datetime = "0.7.1"
-ktor = "3.4.1"
-lettuce = "7.5.0.RELEASE"
+ktor = "3.4.2"
+lettuce = "7.5.1.RELEASE"
 logback = "1.5.32"
 micrometer = "1.16.4"
-netty = "4.2.10.Final"
+netty = "4.2.12.Final"
 postgresql = "42.7.10" # Used in code generation tasks only
 r2dbc-pool = "1.0.2.RELEASE"
 r2dbc-postgresql = "1.1.1.RELEASE"
@@ -26,7 +26,7 @@ cohort-ktor = { module = "com.sksamuel.cohort:cohort-ktor", version.ref = "cohor
 cohort-lettuce = { module = "com.sksamuel.cohort:cohort-lettuce", version.ref = "cohort" }
 cohort-logback = { module = "com.sksamuel.cohort:cohort-logback", version.ref = "cohort" }
 cohort-micrometer = { module = "com.sksamuel.cohort:cohort-micrometer", version.ref = "cohort" }
-fabrikt = { module = "com.cjbooms:fabrikt", version.ref = "fabrikt" }
+fabrikt = { module = "io.fabrikt:fabrikt", version.ref = "fabrikt" }
 jooq-kotlin = { module = "org.jooq:jooq-kotlin", version.ref = "jooq" }
 jooq-kotlin-coroutines = { module = "org.jooq:jooq-kotlin-coroutines", version.ref = "jooq" }
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }

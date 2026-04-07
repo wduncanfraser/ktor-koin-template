@@ -20,26 +20,44 @@ import org.jooq.impl.UpdatableRecordImpl
 @Suppress("warnings")
 open class TodoRecord() : UpdatableRecordImpl<TodoRecord>(Todo.TODO) {
 
+    /**
+     * The unique id (Primary Key) for this table.
+     */
     open var id: UUID?
         set(value): Unit = set(0, value)
         get(): UUID? = get(0) as UUID?
 
+    /**
+     * The name for the todo record.
+     */
     open var name: String?
         set(value): Unit = set(1, value)
         get(): String? = get(1) as String?
 
+    /**
+     * The time the todo was marked as completed.
+     */
     open var completedAt: Instant?
         set(value): Unit = set(2, value)
         get(): Instant? = get(2) as Instant?
 
+    /**
+     * The date / time that this record was created.
+     */
     open var createdAt: Instant?
         set(value): Unit = set(3, value)
         get(): Instant? = get(3) as Instant?
 
+    /**
+     * The date / time that this record was last updated.
+     */
     open var updatedAt: Instant?
         set(value): Unit = set(4, value)
         get(): Instant? = get(4) as Instant?
 
+    /**
+     * The id of the user who owns this todo item.
+     */
     open var userId: String?
         set(value): Unit = set(5, value)
         get(): String? = get(5) as String?
