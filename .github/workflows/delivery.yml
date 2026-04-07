@@ -68,7 +68,7 @@ jobs:
         java-version: 25
 
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v5
+      uses: gradle/actions/setup-gradle@v6
 
     - name: Run detekt
       run: ./gradlew detekt
@@ -87,7 +87,7 @@ jobs:
         java-version: 25
 
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v5
+      uses: gradle/actions/setup-gradle@v6
 
     - name: Run tests and generate coverage report
       run: ./gradlew test integrationTest koverXmlReport koverHtmlReport
@@ -127,7 +127,7 @@ jobs:
         java-version: 25
 
     - name: Generate and submit dependency graph
-      uses: gradle/actions/dependency-submission@v5
+      uses: gradle/actions/dependency-submission@v6
 
   docker-build:
     runs-on: ubuntu-24.04
@@ -187,7 +187,7 @@ jobs:
         java-version: 25
 
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v5
+      uses: gradle/actions/setup-gradle@v6
 
     - name: Generate API
       run: ./gradlew generateApi
@@ -240,7 +240,7 @@ jobs:
         java-version: 25
 
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v5
+      uses: gradle/actions/setup-gradle@v6
 
     - name: Generate jOOQ classes
       run: ./gradlew jooqCodegen
