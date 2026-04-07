@@ -19,7 +19,7 @@ netty = "4.2.10.Final"
 postgresql = "42.7.10" # Used in code generation tasks only
 r2dbc-pool = "1.0.2.RELEASE"
 r2dbc-postgresql = "1.1.1.RELEASE"
-testcontainers = "2.0.3"
+testcontainers = "2.0.4"
 
 [libraries]
 cohort-ktor = { module = "com.sksamuel.cohort:cohort-ktor", version.ref = "cohort" }
