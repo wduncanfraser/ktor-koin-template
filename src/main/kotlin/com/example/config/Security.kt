@@ -75,7 +75,7 @@ fun Application.configureSecurity(authConfig: AuthenticationConfig) {
                     ?: throw OAuthProcessingException("Access token is null in OAuth2 payload")
                 val session = discordOAuthProvider.buildUserSession(principal)
                 call.sessions.set(session)
-                call.respondRedirect("/api/v1/todos")
+                call.respondRedirect(authConfig.oAuth.postLoginRedirectUrl)
             }
         }
 
@@ -107,4 +107,5 @@ data class OAuthConfig(
     val callbackUrl: String,
     val clientId: String,
     val clientSecret: String,
+    val postLoginRedirectUrl: String,
 )

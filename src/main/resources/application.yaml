@@ -12,6 +12,7 @@ authentication:
     callbackUrl: ${AUTHENTICATION_OAUTH_CALLBACKURL:http://localhost:8080/callback}
     clientId: ${AUTHENTICATION_OAUTH_CLIENTID}
     clientSecret: ${AUTHENTICATION_OAUTH_CLIENTSECRET}
+    postLoginRedirectUrl: ${AUTHENTICATION_OAUTH_POSTLOGINREDIRECTURL:http://localhost:5173}
 database:
   url: ${DATABASE_URL:r2dbc:postgresql://localhost:5432/todo}
   user: ${DATABASE_USER:todo}
