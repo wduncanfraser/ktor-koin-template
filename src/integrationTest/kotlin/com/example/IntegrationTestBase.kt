@@ -65,7 +65,8 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
                     oAuth = OAuthConfig(
                         callbackUrl = "",
                         clientId = "",
-                        clientSecret = ""
+                        clientSecret = "",
+                        postLoginRedirectUrl = ""
                     )
                 )
                 integrationTestModule(
