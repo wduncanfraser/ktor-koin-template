@@ -1,0 +1,40 @@
+# Build outputs
+build/
+.gradle/
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.vscode/
+
+# Git
+.git/
+
+# Local environment
+.env
+
+# Docker
+compose.yaml
+
+# CI / tooling config (not needed to compile)
+.github/
+.claude/
+codecov.yml
+redocly.yaml
+.yamlfmt.yaml
+.yamllint.yml
+.sdkmanrc
+
+# Docs
+README.md
+docs/
+
+# Tests not needed for fat jar
+e2e/
+
+# Contract sources (bundled spec is in src/main/resources/openapi/)
+contracts/
