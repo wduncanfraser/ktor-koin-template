@@ -79,7 +79,8 @@ fun StatusPagesConfig.configureStatusPages() {
                         title = cause.statusCode.description,
                         status = cause.statusCode.value,
                         detail = cause.message,
-                        instance = call.request.uri
+                        instance = call.request.uri,
+                        errors = cause.errors,
                     ),
                 )
             }

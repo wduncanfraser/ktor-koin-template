@@ -11,4 +11,5 @@ data class ProblemDetailsException(
     val statusCode: HttpStatusCode,
     override val message: String,
     override val cause: Throwable? = null,
+    val errors: Map<String, List<String>>? = null,
 ) : RuntimeException()

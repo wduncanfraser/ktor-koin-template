@@ -40,5 +40,7 @@ post:
       $ref: ../components/responses/BadRequest.yaml
     '401':
       $ref: ../components/responses/Unauthorized.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
     default:
       $ref: ../components/responses/UnexpectedError.yaml

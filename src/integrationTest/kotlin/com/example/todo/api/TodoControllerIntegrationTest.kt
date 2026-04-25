@@ -47,7 +47,10 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
             response.status shouldBe HttpStatusCode.UnprocessableEntity
             val problem = response.body<ProblemDetailsContract>()
-            problem.status shouldBe HttpStatusCode.UnprocessableEntity.value
+            assertSoftly(problem) {
+                status shouldBe HttpStatusCode.UnprocessableEntity.value
+                errors?.get("name") shouldNotBe null
+            }
         }
 
         test("returns 422 for name exceeding max length") {
@@ -60,7 +63,10 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
             response.status shouldBe HttpStatusCode.UnprocessableEntity
             val problem = response.body<ProblemDetailsContract>()
-            problem.status shouldBe HttpStatusCode.UnprocessableEntity.value
+            assertSoftly(problem) {
+                status shouldBe HttpStatusCode.UnprocessableEntity.value
+                errors?.get("name") shouldNotBe null
+            }
         }
 
         test("returns 302 for login redirect without a session cookie") {
@@ -271,7 +277,10 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
             response.status shouldBe HttpStatusCode.UnprocessableEntity
             val problem = response.body<ProblemDetailsContract>()
-            problem.status shouldBe HttpStatusCode.UnprocessableEntity.value
+            assertSoftly(problem) {
+                status shouldBe HttpStatusCode.UnprocessableEntity.value
+                errors?.get("name") shouldNotBe null
+            }
         }
 
         test("returns 404 when todo does not exist") {

@@ -1,7 +1,6 @@
 package com.example.todo.api
 
 import com.example.core.api.exceptions.ProblemDetailsException
-import com.example.core.validation.format
 import com.example.todo.api.mappers.TodoContractMapper
 import com.example.todo.api.mappers.TodoIdMapper
 import com.example.todo.services.TodoService
@@ -98,8 +97,11 @@ class TodoController(
                 is TodoServiceError.ValidationFailed -> ProblemDetailsException(
                     type = "https://example.com/errors/unprocessable-entity",
                     statusCode = HttpStatusCode.UnprocessableEntity,
-                    message = "Validation failed: ${error.errors.format()}",
+                    message = "Request validation failed",
                     cause = null,
+                    errors = error.errors
+                        .groupBy { it.path.trimStart('.') }
+                        .mapValues { (_, errs) -> errs.map { it.message } },
                 )
 
                 is TodoServiceError.UnhandledServiceError -> RuntimeException(

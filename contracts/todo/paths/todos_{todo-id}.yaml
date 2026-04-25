@@ -48,6 +48,8 @@ put:
       $ref: ../components/responses/Unauthorized.yaml
     '404':
       $ref: ../components/responses/NotFound.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
     default:
       $ref: ../components/responses/UnexpectedError.yaml
 delete:

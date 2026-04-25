@@ -51,6 +51,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         default:
           $ref: '#/components/responses/UnexpectedError'
   /todos/{todo-id}:
@@ -103,6 +105,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         default:
           $ref: '#/components/responses/UnexpectedError'
     delete:
@@ -194,6 +198,13 @@ components:
           type: string
           format: uri-reference
           description: URI reference identifying the specific occurrence of the problem.
+        errors:
+          type: object
+          description: Field-level validation errors, keyed by field path with a list of messages per field.
+          additionalProperties:
+            type: array
+            items:
+              type: string
     TodoName:
       type: string
       description: The name of the Todo.
@@ -310,6 +321,12 @@ components:
             $ref: '#/components/schemas/ProblemDetails'
     Unauthorized:
       description: Unauthorized. The request requires authentication.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    UnprocessableEntity:
+      description: Unprocessable Entity.
       content:
         application/problem+json:
           schema:
