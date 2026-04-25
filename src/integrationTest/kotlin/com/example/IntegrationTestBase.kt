@@ -3,6 +3,7 @@ package com.example
 import com.example.authn.RedisSessionStorage
 import com.example.authn.UserSession
 import com.example.config.AuthenticationConfig
+import com.example.config.CorsConfig
 import com.example.config.DatabaseConfig
 import com.example.config.OAuthConfig
 import com.example.config.RedisConfig
@@ -73,6 +74,7 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
                     databaseConfig = databaseConfig,
                     redisConfig = redisConfig,
                     authConfig = authConfig,
+                    corsConfig = CorsConfig(allowedHosts = "localhost:5173"),
                 )
             }
         }

@@ -5,6 +5,10 @@ ktor:
     - com.example.ApplicationKt.module
   deployment:
     port: 8080
+    shutdownGracePeriod: ${KTOR_SHUTDOWN_GRACE_PERIOD:5000}
+    shutdownTimeout: ${KTOR_SHUTDOWN_TIMEOUT:15000}
+cors:
+  allowedHosts: ${CORS_ALLOWEDHOSTS:localhost:5173}
 authentication:
   sessionCookieName: ${AUTHENTICATION_SESSIONCOOKIENAME:example-cookie-id}
   sessionSigningKey: ${AUTHENTICATION_SESSIONSIGNINGKEY:6819b57a326945c1968f45236589}

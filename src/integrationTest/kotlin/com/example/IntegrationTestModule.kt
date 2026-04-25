@@ -2,6 +2,7 @@ package com.example
 
 import com.example.authn.authNModule
 import com.example.config.AuthenticationConfig
+import com.example.config.CorsConfig
 import com.example.config.DatabaseConfig
 import com.example.config.RedisConfig
 import com.example.config.apiRoutes
@@ -18,7 +19,6 @@ import com.example.todo.todoModule
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.routing.*
 import org.koin.ktor.plugin.Koin
@@ -28,12 +28,11 @@ fun Application.integrationTestModule(
     databaseConfig: DatabaseConfig,
     redisConfig: RedisConfig,
     authConfig: AuthenticationConfig,
+    corsConfig: CorsConfig,
 ) {
     install(ContentNegotiation) { json() }
 
-    install(CORS) {
-        configureCors()
-    }
+    configureCors(corsConfig)
 
     // Test specific koin setup
     install(Koin) {
