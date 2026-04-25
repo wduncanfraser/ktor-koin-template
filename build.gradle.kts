@@ -68,6 +68,8 @@ dependencies {
     // Types
     implementation(libs.bundles.kotlin.result)
     implementation(libs.kotlinx.datetime)
+    // Validation
+    implementation(libs.konform)
     // Monitoring
     implementation(libs.bundles.cohort)
     implementation(libs.micrometer.registry.prometheus)

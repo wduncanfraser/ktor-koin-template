@@ -2,11 +2,13 @@ package com.example.todo.services
 
 import com.example.core.domain.Page
 import com.example.core.repository.RepositoryError
+import com.example.core.validation.ValidationErrors
 import com.example.resultTransactionCoroutine
-import com.example.todo.repository.TodoRepository
 import com.example.todo.domain.Todo
 import com.example.todo.domain.TodoForCreate
 import com.example.todo.domain.TodoForUpdate
+import com.example.todo.repository.TodoRepository
+import com.example.todo.validation.validate
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.coroutines.coroutineBinding
 import com.github.michaelbull.result.mapError
@@ -51,11 +53,13 @@ class TodoService(
     suspend fun createTodo(
         userId: String,
         todoForCreate: TodoForCreate,
-    ): TodoServiceResult<Todo> {
-        val todo = todoForCreate.toPersistenceModel(userId)
-        return ctx.resultTransactionCoroutine { c ->
-            todoRepository.upsert(c, todo)
-                .mapError { it.toServiceError() }
+    ): TodoServiceResult<Todo> = ctx.resultTransactionCoroutine { c ->
+        coroutineBinding {
+            todoForCreate.validate()
+                .mapError { TodoServiceError.ValidationFailed(it) }
+                .bind()
+            val todo = todoForCreate.toPersistenceModel(userId)
+            todoRepository.upsert(c, todo).mapError { it.toServiceError() }.bind()
         }
     }
 
@@ -68,14 +72,13 @@ class TodoService(
         todoForUpdate: TodoForUpdate,
     ): TodoServiceResult<Todo> = ctx.resultTransactionCoroutine { c ->
         coroutineBinding {
-            val todo = todoRepository.getById(c.dsl(), userId, todoForUpdate.id, lockRecords = true)
-                .mapError {
-                    it.toServiceError(notFoundError = TodoServiceError.TodoNotFound(todoForUpdate.id))
-                }
+            todoForUpdate.validate()
+                .mapError { TodoServiceError.ValidationFailed(it) }
                 .bind()
-
+            val todo = todoRepository.getById(c.dsl(), userId, todoForUpdate.id, lockRecords = true)
+                .mapError { it.toServiceError(notFoundError = TodoServiceError.TodoNotFound(todoForUpdate.id)) }
+                .bind()
             val updatedTodo = todo.toPersistenceModel().apply { update(todoForUpdate) }
-
             todoRepository.upsert(c, updatedTodo)
                 .mapError { it.toServiceError() }
                 .bind()
@@ -123,6 +126,7 @@ class TodoService(
  */
 sealed class TodoServiceError {
     data class TodoNotFound(val id: UUID) : TodoServiceError()
+    data class ValidationFailed(val errors: ValidationErrors) : TodoServiceError()
     data class UnhandledServiceError(val t: Throwable?) : TodoServiceError()
 }
 
