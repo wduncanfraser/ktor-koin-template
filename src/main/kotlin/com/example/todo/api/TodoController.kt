@@ -94,6 +94,16 @@ class TodoController(
                     cause = null,
                 )
 
+                is TodoServiceError.ValidationFailed -> ProblemDetailsException(
+                    type = "https://example.com/errors/unprocessable-entity",
+                    statusCode = HttpStatusCode.UnprocessableEntity,
+                    message = "Request validation failed",
+                    cause = null,
+                    errors = error.errors
+                        .groupBy { it.path.trimStart('.') }
+                        .mapValues { (_, errs) -> errs.map { it.message } },
+                )
+
                 is TodoServiceError.UnhandledServiceError -> RuntimeException(
                     "Unexpected exception",
                     error.t,

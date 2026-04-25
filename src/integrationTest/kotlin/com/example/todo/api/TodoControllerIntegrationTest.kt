@@ -37,6 +37,38 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
             }
         }
 
+        test("returns 422 for empty name") {
+            val client = createAuthenticatedTestClient()
+
+            val response = client.post(todosUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = ""))
+            }
+
+            response.status shouldBe HttpStatusCode.UnprocessableEntity
+            val problem = response.body<ProblemDetailsContract>()
+            assertSoftly(problem) {
+                status shouldBe HttpStatusCode.UnprocessableEntity.value
+                errors?.get("name") shouldNotBe null
+            }
+        }
+
+        test("returns 422 for name exceeding max length") {
+            val client = createAuthenticatedTestClient()
+
+            val response = client.post(todosUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "a".repeat(256)))
+            }
+
+            response.status shouldBe HttpStatusCode.UnprocessableEntity
+            val problem = response.body<ProblemDetailsContract>()
+            assertSoftly(problem) {
+                status shouldBe HttpStatusCode.UnprocessableEntity.value
+                errors?.get("name") shouldNotBe null
+            }
+        }
+
         test("returns 302 for login redirect without a session cookie") {
             val client = createTestClient { followRedirects = false }
 
@@ -227,6 +259,27 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
                 name shouldBe "Updated"
                 completed shouldBe true
                 completedAt shouldNotBe null
+            }
+        }
+
+        test("returns 422 for empty name") {
+            val client = createAuthenticatedTestClient()
+
+            val created = client.post(todosUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "Original"))
+            }.body<TodoResponseContract>()
+
+            val response = client.put(todoUrl(created.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTodoRequestContract(name = "", completed = false))
+            }
+
+            response.status shouldBe HttpStatusCode.UnprocessableEntity
+            val problem = response.body<ProblemDetailsContract>()
+            assertSoftly(problem) {
+                status shouldBe HttpStatusCode.UnprocessableEntity.value
+                errors?.get("name") shouldNotBe null
             }
         }
 

@@ -2,6 +2,8 @@ package com.example.generated.api.models
 
 import kotlin.Int
 import kotlin.String
+import kotlin.collections.List
+import kotlin.collections.Map
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -35,4 +37,9 @@ public data class ProblemDetailsContract(
    */
   @SerialName("instance")
   public val instance: String,
+  /**
+   * Field-level validation errors, keyed by field path with a list of messages per field.
+   */
+  @SerialName("errors")
+  public val errors: Map<String, List<String>?>? = null,
 )

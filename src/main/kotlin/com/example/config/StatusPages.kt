@@ -8,12 +8,16 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.plugins.BadRequestException
+import io.ktor.server.plugins.callid.callId
 import io.ktor.server.plugins.statuspages.StatusPagesConfig
 import io.ktor.server.request.uri
 import io.ktor.server.response.respondText
 import kotlinx.serialization.json.Json
 
 private val logger = KotlinLogging.logger {}
+
+private fun ApplicationCall.problemInstance(): String =
+    callId?.let { "urn:request:$it" } ?: request.uri
 
 /**
  * Application Call extension to return [ProblemDetailsContract] with correct content type in ktor
@@ -50,7 +54,7 @@ fun StatusPagesConfig.configureStatusPages() {
                         title = statusCode.description,
                         status = statusCode.value,
                         detail = cause.localizedMessage,
-                        instance = call.request.uri
+                        instance = call.problemInstance()
                     )
                 )
             }
@@ -65,7 +69,7 @@ fun StatusPagesConfig.configureStatusPages() {
                         title = statusCode.description,
                         status = statusCode.value,
                         detail = "Authentication failed, please try again",
-                        instance = call.request.uri
+                        instance = call.problemInstance()
                     )
                 )
             }
@@ -79,7 +83,8 @@ fun StatusPagesConfig.configureStatusPages() {
                         title = cause.statusCode.description,
                         status = cause.statusCode.value,
                         detail = cause.message,
-                        instance = call.request.uri
+                        instance = call.problemInstance(),
+                        errors = cause.errors,
                     ),
                 )
             }
@@ -93,7 +98,7 @@ fun StatusPagesConfig.configureStatusPages() {
                         title = statusCode.description,
                         status = statusCode.value,
                         detail = "Unhandled error, please try again later",
-                        instance = call.request.uri
+                        instance = call.problemInstance()
                     )
                 )
             }
