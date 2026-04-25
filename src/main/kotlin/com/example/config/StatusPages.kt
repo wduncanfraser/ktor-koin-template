@@ -1,5 +1,6 @@
 package com.example.config
 
+import com.example.authn.OAuthProcessingException
 import com.example.core.api.exceptions.ProblemDetailsException
 import com.example.generated.api.models.ProblemDetailsContract
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -49,6 +50,21 @@ fun StatusPagesConfig.configureStatusPages() {
                         title = statusCode.description,
                         status = statusCode.value,
                         detail = cause.localizedMessage,
+                        instance = call.request.uri
+                    )
+                )
+            }
+
+            is OAuthProcessingException -> {
+                logger.warn(cause) { "OAuth processing failed at uri ${call.request.uri}" }
+                val statusCode = HttpStatusCode.Unauthorized
+                call.respondProblem(
+                    statusCode,
+                    ProblemDetailsContract(
+                        type = "https://example.com/errors/unauthorized",
+                        title = statusCode.description,
+                        status = statusCode.value,
+                        detail = "Authentication failed, please try again",
                         instance = call.request.uri
                     )
                 )

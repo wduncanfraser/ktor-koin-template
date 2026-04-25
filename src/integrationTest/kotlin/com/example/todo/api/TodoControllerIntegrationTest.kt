@@ -25,7 +25,7 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
                 setBody(CreateTodoRequestContract(name = "Test todo"))
             }
 
-            response.status shouldBe HttpStatusCode.OK
+            response.status shouldBe HttpStatusCode.Created
             val todo = response.body<TodoResponseContract>()
             assertSoftly(todo) {
                 name shouldBe "Test todo"

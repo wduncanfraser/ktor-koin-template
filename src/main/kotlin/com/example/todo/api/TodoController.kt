@@ -56,7 +56,7 @@ class TodoController(
             .map(TodoContractMapper::toContract)
             .getOrThrow(::mapErrorToException)
 
-        call.respondTyped(response)
+        call.respond(HttpStatusCode.Created, response)
     }
 
     override suspend fun updateTodo(
