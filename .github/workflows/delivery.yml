@@ -11,7 +11,7 @@ env:
   SERVICE_TAG: ktor-koin-template:latest
 
 jobs:
-  yaml-lint:
+  lint-yaml:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -28,7 +28,7 @@ jobs:
         filter_mode: file
         level: warning
 
-  github-actions-lint:
+  lint-github-actions:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -44,7 +44,7 @@ jobs:
         fail_level: warning
         level: warning
 
-  api-lint:
+  lint-api:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -54,7 +54,7 @@ jobs:
     - name: Lint API contracts
       run: docker run --rm -v "$PWD":/spec redocly/cli lint --format=github-actions
 
-  kotlin-lint:
+  lint-kotlin:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -114,6 +114,87 @@ jobs:
         path: build/reports/kover/
         retention-days: 30
 
+  api-codegen:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Bundle API contracts
+        run: ./contracts/build.sh
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 25
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Generate API
+        run: ./gradlew generateApi
+
+      - name: Check for uncommitted changes
+        run: git diff --exit-code
+
+  db-codegen:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: admin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # db/dev/init-db.sh cannot be mounted via the service container's volumes: field because
+      # service containers start before actions/checkout runs, so the workspace file doesn't
+      # exist yet and Docker creates a directory at the mount path instead of a file.
+      - name: Create todo role and database
+        run: |
+          psql -h localhost -U postgres -c "CREATE USER todo WITH PASSWORD 'todo';"
+          psql -h localhost -U postgres -c "CREATE DATABASE todo WITH OWNER todo;"
+        env:
+          PGPASSWORD: admin
+
+      - name: Run database migrations
+        run: |
+          docker run --rm --network host \
+            -v "$PWD/db":/db \
+            -e DATABASE_URL="postgres://postgres:admin@localhost:5432/todo?sslmode=disable" \
+            ghcr.io/amacneil/dbmate up
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 25
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Generate jOOQ classes
+        run: ./gradlew jooqCodegen
+
+      - name: Check for uncommitted changes
+        # -I ignores hunks where all changed lines match the pattern.
+        # db/schema.sql contains pg_dump/database version comments that vary by environment.
+        run: git diff --exit-code -I '-- Dumped (from database|by pg_dump) version'
+
   dependency-submission:
     runs-on: ubuntu-24.04
     permissions:
@@ -170,100 +251,19 @@ jobs:
       with:
         sarif_file: trivy-results.sarif
 
-  api-codegen:
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Bundle API contracts
-      run: ./contracts/build.sh
-
-    - name: Setup JDK
-      uses: actions/setup-java@v5
-      with:
-        distribution: 'temurin'
-        java-version: 25
-
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v6
-
-    - name: Generate API
-      run: ./gradlew generateApi
-
-    - name: Check for uncommitted changes
-      run: git diff --exit-code
-
-  db-codegen:
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_PASSWORD: admin
-        ports:
-        - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-    - uses: actions/checkout@v6
-
-    # db/dev/init-db.sh cannot be mounted via the service container's volumes: field because
-    # service containers start before actions/checkout runs, so the workspace file doesn't
-    # exist yet and Docker creates a directory at the mount path instead of a file.
-    - name: Create todo role and database
-      run: |
-        psql -h localhost -U postgres -c "CREATE USER todo WITH PASSWORD 'todo';"
-        psql -h localhost -U postgres -c "CREATE DATABASE todo WITH OWNER todo;"
-      env:
-        PGPASSWORD: admin
-
-    - name: Run database migrations
-      run: |
-        docker run --rm --network host \
-          -v "$PWD/db":/db \
-          -e DATABASE_URL="postgres://postgres:admin@localhost:5432/todo?sslmode=disable" \
-          ghcr.io/amacneil/dbmate up
-
-    - name: Setup JDK
-      uses: actions/setup-java@v5
-      with:
-        distribution: 'temurin'
-        java-version: 25
-
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v6
-
-    - name: Generate jOOQ classes
-      run: ./gradlew jooqCodegen
-
-    - name: Check for uncommitted changes
-      # -I ignores hunks where all changed lines match the pattern.
-      # db/schema.sql contains pg_dump/database version comments that vary by environment.
-      run: git diff --exit-code -I '-- Dumped (from database|by pg_dump) version'
-
   required-pr-checks:
     if: ${{ always() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
     needs:
-    - yaml-lint
-    - github-actions-lint
-    - api-lint
-    - kotlin-lint
+    - lint-yaml
+    - lint-github-actions
+    - lint-api
+    - lint-kotlin
     - test
-    - dependency-submission
-    - docker-build
     - api-codegen
     - db-codegen
+    - dependency-submission
+    - docker-build
     permissions: {}
 
     steps:

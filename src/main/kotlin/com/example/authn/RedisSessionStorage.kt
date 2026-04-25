@@ -2,6 +2,7 @@ package com.example.authn
 
 import io.ktor.server.sessions.*
 import io.lettuce.core.ExperimentalLettuceCoroutinesApi
+import io.lettuce.core.Range
 import io.lettuce.core.SetArgs
 import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.coroutines
@@ -36,7 +37,7 @@ class RedisSessionStorage(
         // If the session exists, remove the user index value
         api.get(buildSessionKey(id))?.let {
             val session = Json.decodeFromString<UserSession>(it)
-            api.zrem(buildUserSessionsKey(session.userId), buildSessionKey(id))
+            api.zrem(buildUserSessionsKey(session.userId), id)
         }
         api.del(buildSessionKey(id))
     }
@@ -49,6 +50,8 @@ class RedisSessionStorage(
 
     suspend fun listSessionsByUser(userId: String): List<UserSession> {
         val api = redisConnection.coroutines()
+        val now = System.currentTimeMillis().toDouble()
+        api.zremrangebyscore(buildUserSessionsKey(userId), Range.create(Double.NEGATIVE_INFINITY, now))
         val sessionKeys = api.zrange(buildUserSessionsKey(userId), 0, -1).map {
             buildSessionKey(it)
         }.toList()

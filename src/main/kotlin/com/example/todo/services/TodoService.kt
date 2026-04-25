@@ -30,9 +30,10 @@ class TodoService(
         page: Int,
         completed: Boolean? = null,
     ): TodoServiceResult<Page<Todo>> {
-        return todoRepository
-            .list(ctx, userId, pageSize, page, completed)
-            .mapError { it.toServiceError() }
+        return ctx.resultTransactionCoroutine { c ->
+            todoRepository.list(c.dsl(), userId, pageSize, page, completed)
+                .mapError { it.toServiceError() }
+        }
     }
 
     /**

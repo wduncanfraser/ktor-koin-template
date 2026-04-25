@@ -5,7 +5,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.server.auth.OAuthAccessTokenResponse
 import kotlinx.serialization.Serializable
@@ -22,9 +21,8 @@ class DiscordOAuthProvider(
             headers[HttpHeaders.Authorization] = "Bearer $accessToken"
             expectSuccess = true
         }
-        val bodyText = profile.bodyAsText()
-        logger.info { "Received profile: $bodyText" }
         val body = profile.body<DiscordAuthorizationResponse>()
+        logger.debug { "OAuth profile received for userId=${body.user.id} username=${body.user.username}" }
         return UserSession(
             userId = body.user.id,
             accessToken = accessToken,
