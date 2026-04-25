@@ -23,6 +23,10 @@ repositories {
     mavenCentral()
 }
 
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 // Configure common paths used in source sets and tasks
 val generationDir: String = "$projectDir/src/generated"
 

@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./contracts/lint.sh              # Lint OpenAPI contracts (requires Docker)
 ./contracts/build.sh             # Bundle contracts/ → src/main/resources/openapi/todo.yaml (requires Docker)
 ./gradlew test --tests "com.example.todo.repository.mappers.TodoMapperTest"  # Single test class
+./gradlew dependencies --write-locks  # Regenerate gradle.lockfile after dependency changes
 ```
 
 Integration tests use Testcontainers (PostgreSQL + Valkey + dbmate for migrations), so Docker must be running.
