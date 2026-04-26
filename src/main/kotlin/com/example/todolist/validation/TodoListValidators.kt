@@ -7,13 +7,21 @@ import com.example.todolist.domain.TodoListForCreate
 import com.example.todolist.domain.TodoListForUpdate
 import com.github.michaelbull.result.Result
 import io.konform.validation.Validation
+import io.konform.validation.ValidationBuilder
+import io.konform.validation.constraints.minLength
+
+private fun ValidationBuilder<String>.nonEmptyDescription() {
+    minLength(1)
+}
 
 private val todoListForCreateValidator = Validation {
     TodoListForCreate::name { itemName() }
+    TodoListForCreate::description ifPresent { nonEmptyDescription() }
 }
 
 private val todoListForUpdateValidator = Validation {
     TodoListForUpdate::name { itemName() }
+    TodoListForUpdate::description ifPresent { nonEmptyDescription() }
 }
 
 fun TodoListForCreate.validate(): Result<TodoListForCreate, ValidationErrors> =

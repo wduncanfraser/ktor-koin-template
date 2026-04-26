@@ -15,102 +15,113 @@ class TodoContractMapperTest : FunSpec({
 
     val fixedInstant = Instant.parse("2025-01-15T10:30:00Z")
     val completedInstant = Instant.parse("2025-01-16T12:00:00Z")
+    val listId = UUID.randomUUID()
 
-    test("toContract maps Todo with null completedAt") {
-        val id = UUID.randomUUID()
-        val todo = Todo(
-            id = id,
-            name = "Incomplete task",
-            completedAt = null,
-            userId = "test-user",
-            createdAt = fixedInstant,
-            updatedAt = fixedInstant,
-        )
+    context("toContract") {
+        test("maps Todo with null completedAt") {
+            val id = UUID.randomUUID()
+            val todo = Todo(
+                id = id,
+                name = "Incomplete task",
+                completedAt = null,
+                todoListId = listId,
+                createdByUserId = "test-user",
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant,
+            )
 
-        val result = TodoContractMapper.toContract(todo)
+            val result = TodoContractMapper.toContract(todo)
 
-        assertSoftly(result) {
-            this.id shouldBe id.toString()
-            name shouldBe "Incomplete task"
-            completed shouldBe false
-            completedAt shouldBe null
-            createdAt shouldBe fixedInstant
-            updatedAt shouldBe fixedInstant
+            assertSoftly(result) {
+                this.id shouldBe id.toString()
+                todoListId shouldBe listId.toString()
+                name shouldBe "Incomplete task"
+                completed shouldBe false
+                completedAt shouldBe null
+                createdBy shouldBe "test-user"
+                createdAt shouldBe fixedInstant
+                updatedAt shouldBe fixedInstant
+            }
+        }
+
+        test("maps Todo with completedAt") {
+            val todo = Todo(
+                id = UUID.randomUUID(),
+                name = "Done task",
+                completedAt = completedInstant,
+                todoListId = listId,
+                createdByUserId = "test-user",
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant,
+            )
+
+            val result = TodoContractMapper.toContract(todo)
+
+            result.completed shouldBe true
+            result.completedAt shouldBe completedInstant
+        }
+
+        test("maps Page of Todos") {
+            val todo1 = Todo(
+                id = UUID.randomUUID(),
+                name = "First",
+                completedAt = null,
+                todoListId = listId,
+                createdByUserId = "test-user",
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant,
+            )
+            val todo2 = Todo(
+                id = UUID.randomUUID(),
+                name = "Second",
+                completedAt = completedInstant,
+                todoListId = listId,
+                createdByUserId = "test-user",
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant,
+            )
+            val page = Page(
+                data = listOf(todo1, todo2),
+                pageNumber = 1,
+                pageSize = 20,
+                totalRows = 2,
+                totalPages = 1,
+            )
+
+            val result = TodoContractMapper.toContract(page)
+
+            assertSoftly(result) {
+                data shouldHaveSize 2
+                data[0].name shouldBe "First"
+                data[1].name shouldBe "Second"
+                pagination.page shouldBe 1
+                pagination.pageSize shouldBe 20
+                pagination.totalRows shouldBe 2
+                pagination.totalPages shouldBe 1
+            }
         }
     }
 
-    test("toContract maps Todo with completedAt") {
-        val todo = Todo(
-            id = UUID.randomUUID(),
-            name = "Done task",
-            completedAt = completedInstant,
-            userId = "test-user",
-            createdAt = fixedInstant,
-            updatedAt = fixedInstant,
-        )
+    context("toDomain") {
+        test("maps CreateTodoRequestContract") {
+            val contract = CreateTodoRequestContract(name = "New todo")
 
-        val result = TodoContractMapper.toContract(todo)
+            val result = TodoContractMapper.toDomain(contract)
 
-        result.completed shouldBe true
-        result.completedAt shouldBe completedInstant
-    }
-
-    test("toContract maps Page of Todos") {
-        val todo1 = Todo(
-            id = UUID.randomUUID(),
-            name = "First",
-            completedAt = null,
-            userId = "test-user",
-            createdAt = fixedInstant,
-            updatedAt = fixedInstant,
-        )
-        val todo2 = Todo(
-            id = UUID.randomUUID(),
-            name = "Second",
-            completedAt = completedInstant,
-            userId = "test-user",
-            createdAt = fixedInstant,
-            updatedAt = fixedInstant,
-        )
-        val page = Page(
-            data = listOf(todo1, todo2),
-            pageNumber = 1,
-            pageSize = 20,
-            totalRows = 2,
-            totalPages = 1,
-        )
-
-        val result = TodoContractMapper.toContract(page)
-
-        assertSoftly(result) {
-            data shouldHaveSize 2
-            data[0].name shouldBe "First"
-            data[1].name shouldBe "Second"
-            pagination.page shouldBe 1
-            pagination.pageSize shouldBe 20
-            pagination.totalRows shouldBe 2
-            pagination.totalPages shouldBe 1
+            result.name shouldBe "New todo"
         }
-    }
 
-    test("toDomain maps CreateTodoRequestContract") {
-        val contract = CreateTodoRequestContract(name = "New todo")
+        test("maps UpdateTodoRequestContract") {
+            val id = UUID.randomUUID()
+            val contract = UpdateTodoRequestContract(name = "Updated", completed = true)
 
-        val result = TodoContractMapper.toDomain(contract)
+            val result = TodoContractMapper.toDomain(id.toString(), contract)
 
-        result.name shouldBe "New todo"
-    }
-
-    test("toDomain maps UpdateTodoRequestContract") {
-        val id = UUID.randomUUID()
-        val contract = UpdateTodoRequestContract(name = "Updated", completed = true)
-
-        val result = TodoContractMapper.toDomain(id.toString(), contract)
-
-        assertSoftly(result) {
-            this.id shouldBe id
-            name shouldBe "Updated"
-            completed shouldBe true
+            assertSoftly(result) {
+                this.id shouldBe id
+                name shouldBe "Updated"
+                completed shouldBe true
+            }
         }
     }
 })

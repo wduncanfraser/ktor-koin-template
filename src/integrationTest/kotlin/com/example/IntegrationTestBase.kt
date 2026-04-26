@@ -51,7 +51,8 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
         testApp = TestApplication {
             application {
                 val databaseConfig = DatabaseConfig(
-                    url = "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(POSTGRESQL_PORT)}/${postgres.databaseName}",
+                    url = "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(POSTGRESQL_PORT)}" +
+                        "/${postgres.databaseName}",
                     user = postgres.username,
                     password = postgres.password,
                     poolSize = 5,
@@ -128,7 +129,7 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
     }
 
     companion object {
-        private val DATABASE_TABLES = listOf("todo")
+        private val DATABASE_TABLES = listOf("todo", "todo_list")
         private const val REDIS_PORT = 6379
         private const val TEST_SESSION_SIGNING_KEY = "0101010101010101010101010101010101010101010101010101010101010101"
         const val TEST_SESSION_COOKIE_NAME = "test-session-cookie"

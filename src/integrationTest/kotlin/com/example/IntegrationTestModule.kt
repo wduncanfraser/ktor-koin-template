@@ -16,6 +16,7 @@ import com.example.config.monitoringModule
 import com.example.config.redisModule
 import com.example.config.warmupDatabase
 import com.example.todo.todoModule
+import com.example.todolist.todoListModule
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -44,6 +45,7 @@ fun Application.integrationTestModule(
             databaseModule(databaseConfig),
             redisModule(redisConfig),
             todoModule,
+            todoListModule,
         )
     }
     configureMonitoring()

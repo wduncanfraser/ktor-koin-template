@@ -1,4 +1,4 @@
-package com.example.todo.api.mappers
+package com.example.todolist.api.mappers
 
 import com.example.core.api.exceptions.ProblemDetailsException
 import io.kotest.assertions.assertSoftly
@@ -8,25 +8,25 @@ import io.kotest.matchers.shouldBe
 import io.ktor.http.HttpStatusCode
 import java.util.UUID
 
-class TodoIdMapperTest : FunSpec({
+class TodoListIdMapperTest : FunSpec({
 
     context("toDomain") {
         test("converts valid UUID string") {
             val uuid = UUID.randomUUID()
 
-            val result = TodoIdMapper.toDomain(uuid.toString())
+            val result = TodoListIdMapper.toDomain(uuid.toString())
 
             result shouldBe uuid
         }
 
         test("throws ProblemDetailsException for invalid UUID") {
             val exception = shouldThrow<ProblemDetailsException> {
-                TodoIdMapper.toDomain("not-a-uuid")
+                TodoListIdMapper.toDomain("not-a-uuid")
             }
 
             assertSoftly(exception) {
                 statusCode shouldBe HttpStatusCode.NotFound
-                message shouldBe "Todo not found: todoId=not-a-uuid"
+                message shouldBe "Todo list not found: listId=not-a-uuid"
             }
         }
     }

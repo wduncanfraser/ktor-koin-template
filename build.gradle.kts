@@ -129,6 +129,11 @@ detekt {
     autoCorrect = project.findProperty("autoCorrect") as String? == "true"
     buildUponDefaultConfig = false
     config.setFrom("$projectDir/config/detekt.yml")
+    source.setFrom(
+        "src/main/kotlin",
+        "src/test/kotlin",
+        "src/integrationTest/kotlin",
+    )
 }
 
 kover {
