@@ -56,26 +56,28 @@ The architecture is domain-centric, taking practical inspiration from DDD and On
 │  API edge                                               │
 │  OpenAPI spec → Fabrikt → controller interface          │
 │  Types: *Contract (generated)                           │
-│  Mapper: TodoContractMapper (contracts ↔ domain)        │
+│  Mapper: *ContractMapper (contracts ↔ domain)           │
 └───────────────────────┬─────────────────────────────────┘
                         │ domain models only
               ┌─────────▼──────────┐
               │  Domain            │
-              │  TodoService       │
+              │  *Service          │
               │  kotlin-result,    │
               │  transactions      │
               └─────────┬──────────┘
                         │ domain models only
 ┌───────────────────────▼─────────────────────────────────┐
 │  Database edge                                          │
-│  TodoRepository (jOOQ queries)                          │
+│  *Repository (jOOQ queries)                             │
 │  Types: *Record (jOOQ-generated)                        │
-│  Mapper: TodoMapper (domain ↔ records)                  │
+│  Mapper: *Mapper (domain ↔ records)                     │
 │  PostgreSQL via R2DBC                                   │
 └─────────────────────────────────────────────────────────┘
 ```
 
-Each layer has a typed error type. Repository returns `RepositoryResult<T>`, service returns `TodoServiceResult<T>`, and the controller converts service errors to `ProblemDetailsException` at the HTTP boundary, producing RFC 9457 Problem Details responses. The `kotlin-result` library (not stdlib `Result`) is used throughout.
+Each feature is a self-contained module under its own package (e.g. `todo/`, `todolist/`), each with its own controller, service, repository, mappers, and validation. Shared utilities live in `core/` (pagination helpers, validation rules, repository error handling).
+
+Each layer has a typed error type. Repository returns `RepositoryResult<T>`, service returns a module-specific result type (e.g. `TodoListServiceResult<T>`), and the controller converts service errors to `ProblemDetailsException` at the HTTP boundary, producing RFC 9457 Problem Details responses. The `kotlin-result` library (not stdlib `Result`) is used throughout.
 
 `resultTransactionCoroutine` is a custom extension wrapping jOOQ's `transactionCoroutine` that automatically rolls back the transaction when the inner block returns `Result.Err`.
 
