@@ -1,4 +1,4 @@
-package com.example.todo.api.mappers
+package com.example.todolist.api.mappers
 
 import com.example.core.api.mappers.PaginationContractMapper
 import com.example.core.domain.Page
@@ -25,6 +25,7 @@ object TodoContractMapper {
         name = todo.name,
         completed = todo.completedAt != null,
         completedAt = todo.completedAt,
+        createdBy = todo.createdByUserId,
         createdAt = todo.createdAt,
         updatedAt = todo.updatedAt,
     )

@@ -1,4 +1,4 @@
-package com.example.todo.repository
+package com.example.todolist.repository
 
 import com.example.core.domain.Page
 import com.example.core.repository.RepositoryConsts
@@ -6,45 +6,43 @@ import com.example.core.repository.RepositoryResult
 import com.example.core.repository.mapExpectingOne
 import com.example.core.repository.runWrappingError
 import com.example.core.repository.toNotFoundIfNull
-import com.example.generated.db.tables.references.TODO
-import com.example.todo.domain.Todo
-import com.example.todo.domain.TodoForSave
-import com.example.todo.repository.mappers.TodoMapper
+import com.example.generated.db.tables.references.TODO_LIST
+import com.example.todolist.domain.TodoList
+import com.example.todolist.domain.TodoListForSave
+import com.example.todolist.repository.mappers.TodoListMapper
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
-import org.jooq.Condition
 import org.jooq.Configuration
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import java.time.Duration
 import java.util.UUID
 
-class TodoRepository {
+class TodoListRepository {
     suspend fun list(
         ctx: DSLContext,
-        todoListId: UUID,
+        createdByUserId: String,
         pageSize: Int,
         page: Int,
-        completed: Boolean? = null,
-    ): RepositoryResult<Page<Todo>> = runWrappingError {
+    ): RepositoryResult<Page<TodoList>> = runWrappingError {
         val totalRows = ctx.selectCount()
-            .from(TODO)
-            .where(todoConditions(todoListId, completed))
+            .from(TODO_LIST)
+            .where(TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId))
             .awaitSingle()
             .get(0, Int::class.java)
         val totalPages = (totalRows + pageSize - 1) / pageSize
         val offset = (page - 1) * pageSize
 
-        val data = ctx.selectFrom(TODO)
-            .where(todoConditions(todoListId, completed))
-            .orderBy(TODO.CREATED_AT.asc())
+        val data = ctx.selectFrom(TODO_LIST)
+            .where(TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId))
+            .orderBy(TODO_LIST.CREATED_AT.asc())
             .limit(pageSize)
             .offset(offset)
             .asFlow()
-            .map(TodoMapper::toDomain)
+            .map(TodoListMapper::toDomain)
             .toList()
 
         Page(
@@ -57,22 +55,22 @@ class TodoRepository {
     }
 
     /**
-     * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if no [Todo] was found.
+     * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if no [TodoList] was found.
      */
     suspend fun getById(
         ctx: DSLContext,
-        todoListId: UUID,
+        createdByUserId: String,
         id: UUID,
         lockRecords: Boolean = false,
         lockWait: Duration = RepositoryConsts.DEFAULT_LOCK_TIMEOUT,
-    ): RepositoryResult<Todo> = runWrappingError {
+    ): RepositoryResult<TodoList> = runWrappingError {
         // TODO: Wait with R2DBC leads to failed queries, https://github.com/jOOQ/jOOQ/issues/19681
         //  Workaround is to set lock_timeout as a separate statement
         if (lockRecords) {
             ctx.setLocal("lock_timeout", DSL.inline(lockWait.toMillis().toString())).awaitFirstOrNull()
         }
-        ctx.selectFrom(TODO)
-            .where(TODO.ID.eq(id).and(TODO.TODO_LIST_ID.eq(todoListId)))
+        ctx.selectFrom(TODO_LIST)
+            .where(TODO_LIST.ID.eq(id).and(TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId)))
             .apply {
                 if (lockRecords) {
                     this.forUpdate()
@@ -81,45 +79,36 @@ class TodoRepository {
                 }
             }
             .awaitFirstOrNull()
-            ?.let(TodoMapper::toDomain)
+            ?.let(TodoListMapper::toDomain)
     }.toNotFoundIfNull()
 
     suspend fun upsert(
         c: Configuration,
-        todo: TodoForSave,
-    ): RepositoryResult<Todo> = runWrappingError {
-        val record = TodoMapper.toRecord(todo)
+        todoList: TodoListForSave,
+    ): RepositoryResult<TodoList> = runWrappingError {
+        val record = TodoListMapper.toRecord(todoList)
         val result = c.dsl()
-            .insertInto(TODO)
+            .insertInto(TODO_LIST)
             .set(record)
             .onDuplicateKeyUpdate()
             .set(record)
             .returning()
             .awaitSingle()
-        TodoMapper.toDomain(result)
+        TodoListMapper.toDomain(result)
     }
 
     /**
      * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if nothing was deleted.
+     * Cascade deletes all [com.example.todo.domain.Todo]s belonging to this list.
      */
     suspend fun delete(
         c: Configuration,
-        todoListId: UUID,
+        createdByUserId: String,
         id: UUID,
     ): RepositoryResult<Unit> = runWrappingError {
         c.dsl()
-            .deleteFrom(TODO)
-            .where(TODO.ID.eq(id).and(TODO.TODO_LIST_ID.eq(todoListId)))
+            .deleteFrom(TODO_LIST)
+            .where(TODO_LIST.ID.eq(id).and(TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId)))
             .awaitSingle()
     }.mapExpectingOne()
-
-    private fun todoConditions(todoListId: UUID, completed: Boolean?): Condition {
-        var conditions = TODO.TODO_LIST_ID.eq(todoListId)
-        if (completed == true) {
-            conditions = conditions.and(TODO.COMPLETED_AT.isNotNull)
-        } else if (completed == false) {
-            conditions = conditions.and(TODO.COMPLETED_AT.isNull)
-        }
-        return conditions
-    }
 }

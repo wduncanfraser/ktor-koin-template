@@ -7,28 +7,24 @@ import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
 
 /**
- * Repository mappers are used to convert from our Jooq models to Domain models, and vice versa.
+ * Repository mappers are used to convert from our jOOQ models to Domain models, and vice versa.
  */
 object TodoMapper {
-    /**
-     * Convert a jooq [TodoRecord] instance into a [Todo]
-     */
     fun toDomain(record: TodoRecord) = Todo(
         id = record.id!!,
         name = record.name!!,
         completedAt = record.completedAt?.toKotlinInstant(),
-        userId = record.userId!!,
+        todoListId = record.todoListId!!,
+        createdByUserId = record.createdByUserId!!,
         createdAt = record.createdAt!!.toKotlinInstant(),
         updatedAt = record.updatedAt!!.toKotlinInstant(),
     )
 
-    /**
-     * Convert a [TodoForSave] instance into a [TodoRecord].
-     */
     fun toRecord(todo: TodoForSave) = TodoRecord(
         id = todo.id,
         name = todo.name,
         completedAt = todo.completedAt?.toJavaInstant(),
-        userId = todo.userId,
+        todoListId = todo.todoListId,
+        createdByUserId = todo.createdByUserId,
     )
 }
