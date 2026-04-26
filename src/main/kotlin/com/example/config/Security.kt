@@ -4,6 +4,8 @@ import com.example.authn.DiscordOAuthProvider
 import com.example.authn.OAuthProcessingException
 import com.example.authn.RedisSessionStorage
 import com.example.authn.UserSession
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CancellationException
 import io.ktor.client.*
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -16,6 +18,8 @@ import io.ktor.util.*
 import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.Serializable
 import org.koin.ktor.ext.inject
+
+private val logger = KotlinLogging.logger {}
 
 fun Application.configureSecurity() {
     val authConfig: AuthenticationConfig = property("authentication")
@@ -41,8 +45,30 @@ fun Application.configureSecurity(authConfig: AuthenticationConfig) {
 
     install(Authentication) {
         session<UserSession>("auth-session") {
-            validate {
-                it
+            validate { session ->
+                when {
+                    session.isExpiredOrExpiringSoon() && session.refreshToken != null -> {
+                        @Suppress("TooGenericExceptionCaught")
+                        try {
+                            val newSession = discordOAuthProvider.refreshSession(
+                                session,
+                                authConfig.oAuth.clientId,
+                                authConfig.oAuth.clientSecret,
+                            )
+                            sessions.set(newSession)
+                            newSession
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            logger.warn(e) {
+                                "Token refresh failed for userId=${session.userId}, re-authentication required"
+                            }
+                            null
+                        }
+                    }
+                    session.isExpiredOrExpiringSoon() -> null
+                    else -> session
+                }
             }
             challenge {
                 call.respondRedirect("/login")

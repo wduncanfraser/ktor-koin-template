@@ -35,7 +35,7 @@ import java.sql.DriverManager
 import java.time.Duration
 import java.util.UUID
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.days
 
 abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : FunSpec() {
     private lateinit var testApp: TestApplication
@@ -166,14 +166,14 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
             userId = "test-user-id",
             accessToken = "test-access-token",
             refreshToken = null,
-            expiration = Clock.System.now().plus(24.hours),
+            expiration = Clock.System.now().plus(7.days),
         )
 
         fun secondTestSession() = UserSession(
             userId = "test-user-id-2",
             accessToken = "test-access-token-2",
             refreshToken = null,
-            expiration = Clock.System.now().plus(24.hours),
+            expiration = Clock.System.now().plus(7.days),
         )
     }
 }
