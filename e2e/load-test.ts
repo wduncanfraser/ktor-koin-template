@@ -17,46 +17,91 @@ export default function() {
   const jar = http.cookieJar();
   jar.set('http://localhost:8080', 'example-cookie-id', cookie);
 
-  // List up front
-  const initialListResponse = todoClient.listTodos(
+  // List todo lists up front
+  const initialListResponse = todoClient.listTodoLists(
       null,
-      { tags: { name: "ListTodosURL" } }
+      { tags: { name: "ListTodoListsURL" } }
   );
   check(initialListResponse.response,
       { "Initial list status is 200": (res) => res.status === 200 }
   );
 
-  // Create a todo
-  const createTodoRequest = {
-    name: "Cook dinner",
-  };
+  // Create a todo list
+  const createListResponse = todoClient.createTodoList(
+      { name: "Load test list", description: "Created by k6" },
+      { tags: { name: "CreateTodoListURL" } }
+  );
+  check(createListResponse.response,
+      { "Create list status is 200": (res) => res.status === 200 }
+  );
+  const listId = createListResponse.data.id;
 
-  const createTodoResponse = todoClient.createTodo(
-    createTodoRequest,
-    { tags: { name: "CreateTodoURL" } }
+  // Get the todo list
+  const getListResponse = todoClient.getTodoList(
+      listId,
+      { tags: { name: "GetTodoListURL" } }
+  );
+  check(getListResponse.response,
+      { "Get list status is 200": (res) => res.status === 200 }
+  );
+
+  // Update the todo list
+  const updateListResponse = todoClient.updateTodoList(
+      listId,
+      { name: "Updated list", description: null },
+      { tags: { name: "UpdateTodoListURL" } }
+  );
+  check(updateListResponse.response,
+      { "Update list status is 200": (res) => res.status === 200 }
+  );
+
+  // Get a todo list that doesn't exist
+  const invalidListId = uuidv4();
+  const invalidGetListResponse = todoClient.getTodoList(
+      invalidListId,
+      { tags: { name: "GetInvalidTodoListURL" } }
+  );
+  check(invalidGetListResponse.response,
+      { "Getting a non-existent list is a 404": (res) => res.status === 404 }
+  );
+
+  // Create a todo in the list
+  const createTodoResponse = todoClient.createTodoInList(
+      listId,
+      { name: "Cook dinner" },
+      { tags: { name: "CreateTodoURL" } }
   );
   check(createTodoResponse.response,
-      { "Create status is 200": (res) => res.status === 200 }
+      { "Create todo status is 200": (res) => res.status === 200 }
   );
   const todoId = createTodoResponse.data.id;
 
-  // Get Todo
-  const getTodoResponse = todoClient.getTodo(
+  // List todos in the list
+  const listTodosInListResponse = todoClient.listTodosInList(
+      listId,
+      null,
+      { tags: { name: "ListTodosInListURL" } }
+  );
+  check(listTodosInListResponse.response,
+      { "List todos in list status is 200": (res) => res.status === 200 }
+  );
+
+  // Get the todo
+  const getTodoResponse = todoClient.getTodoInList(
+      listId,
       todoId,
-      { tags: { name: "GetTodoURL" } },
+      { tags: { name: "GetTodoURL" } }
   );
   check(getTodoResponse.response,
       { "Get todo status is 200": (res) => res.status === 200 }
   );
 
-  // Update Todo
-  const updateTodoRequest = {
-    name: createTodoRequest.name,
-    completed: true,
-  };
-  const updateTodoResponse = todoClient.updateTodo(
-    todoId, updateTodoRequest,
-    { tags: { name: "UpdateTodoURL" } },
+  // Update the todo (mark completed)
+  const updateTodoResponse = todoClient.updateTodoInList(
+      listId,
+      todoId,
+      { name: "Cook dinner", completed: true },
+      { tags: { name: "UpdateTodoURL" } }
   );
   check(updateTodoResponse.response,
       { "Update todo status is 200": (res) => res.status === 200 }
@@ -64,47 +109,60 @@ export default function() {
 
   // Update a todo that doesn't exist
   const invalidTodoId = uuidv4();
-  const invalidUpdateTodoResponse = todoClient.updateTodo(
+  const invalidUpdateTodoResponse = todoClient.updateTodoInList(
+      listId,
       invalidTodoId,
-      updateTodoRequest,
-      { tags: { name: "UpdateInvalidTodoURL" } },
+      { name: "Cook dinner", completed: false },
+      { tags: { name: "UpdateInvalidTodoURL" } }
   );
   check(invalidUpdateTodoResponse.response,
       { "Updating a non-existent todo is a 404": (res) => res.status === 404 }
   );
 
   // Get a todo that doesn't exist
-  const invalidGetTodoResponse = todoClient.getTodo(
+  const invalidGetTodoResponse = todoClient.getTodoInList(
+      listId,
       invalidTodoId,
-      { tags: { name: "GetInvalidTodoURL" } },
+      { tags: { name: "GetInvalidTodoURL" } }
   );
   check(invalidGetTodoResponse.response,
       { "Getting a non-existent todo is a 404": (res) => res.status === 404 }
   );
 
-  // List todos again
-  const secondListResponse = todoClient.listTodos(null, {
-      tags: { name: "ListTodosURL" }
-  });
-  check(secondListResponse.response,
-      { "Second list status is 200": (res) => res.status === 200 }
+  // List all todos across lists
+  const listAllTodosResponse = todoClient.listTodos(
+      null,
+      { tags: { name: "ListAllTodosURL" } }
+  );
+  check(listAllTodosResponse.response,
+      { "List all todos status is 200": (res) => res.status === 200 }
   );
 
-  // Delete todo
-  const deleteTodoResponse = todoClient.deleteTodo(
+  // Delete the todo
+  const deleteTodoResponse = todoClient.deleteTodoInList(
+      listId,
       todoId,
-      { tags: { name: "DeleteTodoURL" } },
+      { tags: { name: "DeleteTodoURL" } }
   );
   check(deleteTodoResponse.response,
       { "Delete todo status is 204": (res) => res.status === 204 }
   );
 
-  // Delete a todo that doesn't exist
-  const invalidDeleteTodoResponse = todoClient.deleteTodo(
-      invalidTodoId,
-      { tags: { name: "DeleteInvalidTodoURL" } },
+  // Delete the todo list
+  const deleteListResponse = todoClient.deleteTodoList(
+      listId,
+      { tags: { name: "DeleteTodoListURL" } }
   );
-  check(invalidDeleteTodoResponse.response,
-      { "Deleting a non-existent todo is a 404": (res) => res.status === 404 }
+  check(deleteListResponse.response,
+      { "Delete list status is 204": (res) => res.status === 204 }
+  );
+
+  // Delete a todo list that doesn't exist
+  const invalidDeleteListResponse = todoClient.deleteTodoList(
+      invalidListId,
+      { tags: { name: "DeleteInvalidTodoListURL" } }
+  );
+  check(invalidDeleteListResponse.response,
+      { "Deleting a non-existent list is a 404": (res) => res.status === 404 }
   );
 }
