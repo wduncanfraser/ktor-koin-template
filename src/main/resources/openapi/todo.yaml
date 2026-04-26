@@ -9,6 +9,25 @@ servers:
 security:
   - SessionCookie: []
 paths:
+  /todos:
+    get:
+      summary: List all todos for the authenticated user
+      operationId: listTodos
+      tags:
+        - Todos
+      parameters:
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/TodoCompleted'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListTodosResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
   /todo-lists:
     get:
       summary: List all todo lists
@@ -283,13 +302,6 @@ components:
         minimum: 1
         default: 1
       description: The page number of results to return.
-    TodoListId:
-      name: list-id
-      in: path
-      description: The unique identifier of the Todo list.
-      required: true
-      schema:
-        type: string
     TodoCompleted:
       name: completed
       in: query
@@ -297,13 +309,20 @@ components:
       schema:
         type: boolean
       description: Filter for todos to only list completed vs incomplete records.
+    TodoListId:
+      name: list-id
+      in: path
+      description: The unique identifier of the Todo list.
+      required: true
+      schema:
+        $ref: '#/components/schemas/TodoListId'
     TodoId:
       name: todo-id
       in: path
       description: The unique identifier of the Todo.
       required: true
       schema:
-        type: string
+        $ref: '#/components/schemas/TodoId'
   schemas:
     ProblemDetails:
       type: object
@@ -339,16 +358,19 @@ components:
             type: array
             items:
               type: string
-    TodoListName:
+    TodoId:
       type: string
-      description: The name of the Todo list.
-      example: Shopping
+      description: The unique identifier of the Todo list.
+      example: 00000000-0000-0000-0000-000000000000
+    TodoListId:
+      type: string
+      description: The unique identifier of the Todo.
+      example: 00000000-0000-0000-0000-000000000000
+    TodoName:
+      type: string
+      description: The name of the Todo.
+      example: Cook dinner
       minLength: 1
-    TodoListDescription:
-      type: string
-      description: An optional description of the Todo list.
-      example: Weekly grocery shopping items
-      nullable: true
     CreatedAt:
       type: string
       description: Date and time which is set automatically when the resource is created.
@@ -359,34 +381,45 @@ components:
       description: Date and time which updates automatically when the resource is updated.
       format: date-time
       example: '2020-01-13T09:25:56Z'
-    TodoListResponse:
+    TodoResponse:
       type: object
-      description: A todo list.
+      description: A todo item.
       required:
         - id
+        - todoListId
         - name
+        - completed
         - createdBy
         - createdAt
         - updatedAt
       properties:
         id:
-          type: string
+          $ref: '#/components/schemas/TodoId'
+        todoListId:
+          $ref: '#/components/schemas/TodoListId'
         name:
-          $ref: '#/components/schemas/TodoListName'
-        description:
-          $ref: '#/components/schemas/TodoListDescription'
+          $ref: '#/components/schemas/TodoName'
+        completed:
+          type: boolean
+          description: Is the Todo completed.
+        completedAt:
+          type: string
+          description: Date and time when the Todo was marked completed.
+          format: date-time
         createdBy:
           type: string
-          description: The id of the user who created this todo list.
+          description: The id of the user who created this todo item.
         createdAt:
           $ref: '#/components/schemas/CreatedAt'
         updatedAt:
           $ref: '#/components/schemas/UpdatedAt'
       example:
-        id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-        name: Shopping
-        description: Weekly grocery shopping items
-        createdBy: discord-user-id-123
+        id: e3c205bd-7293-4fe0-9da9-8279a0e54ab1
+        todoListId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        name: Cook dinner
+        completed: true
+        completedAt: '2020-01-13T09:25:56Z'
+        createdBy: '123456789012345678'
         createdAt: '2019-08-24T14:15:22Z'
         updatedAt: '2020-01-13T09:25:56Z'
     PaginationMetadata:
@@ -410,6 +443,46 @@ components:
           type: integer
           example: 1000
       description: Paginated Results with metadata describing the page
+    TodoListName:
+      type: string
+      description: The name of the Todo list.
+      example: Shopping
+      minLength: 1
+    TodoListDescription:
+      type: string
+      description: An optional description of the Todo list.
+      example: Weekly grocery shopping items
+      nullable: true
+    TodoListResponse:
+      type: object
+      description: A todo list.
+      required:
+        - id
+        - name
+        - createdBy
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/TodoListId'
+        name:
+          $ref: '#/components/schemas/TodoListName'
+        description:
+          $ref: '#/components/schemas/TodoListDescription'
+        createdBy:
+          type: string
+          description: The id of the user who created this todo list.
+        createdAt:
+          $ref: '#/components/schemas/CreatedAt'
+        updatedAt:
+          $ref: '#/components/schemas/UpdatedAt'
+      example:
+        id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        name: Shopping
+        description: Weekly grocery shopping items
+        createdBy: '123456789012345678'
+        createdAt: '2019-08-24T14:15:22Z'
+        updatedAt: '2020-01-13T09:25:56Z'
     CreateTodoListRequest:
       type: object
       required:
@@ -428,48 +501,6 @@ components:
           $ref: '#/components/schemas/TodoListName'
         description:
           $ref: '#/components/schemas/TodoListDescription'
-    TodoName:
-      type: string
-      description: The name of the Todo.
-      example: Cook dinner
-      minLength: 1
-    TodoResponse:
-      type: object
-      description: A todo item.
-      required:
-        - id
-        - name
-        - completed
-        - createdBy
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        name:
-          $ref: '#/components/schemas/TodoName'
-        completed:
-          type: boolean
-          description: Is the Todo completed.
-        completedAt:
-          type: string
-          description: Date and time when the Todo was marked completed.
-          format: date-time
-        createdBy:
-          type: string
-          description: The id of the user who created this todo item.
-        createdAt:
-          $ref: '#/components/schemas/CreatedAt'
-        updatedAt:
-          $ref: '#/components/schemas/UpdatedAt'
-      example:
-        id: e3c205bd-7293-4fe0-9da9-8279a0e54ab1
-        name: Cook dinner
-        completed: true
-        completedAt: '2020-01-13T09:25:56Z'
-        createdBy: '123456789012345678'
-        createdAt: '2019-08-24T14:15:22Z'
-        updatedAt: '2020-01-13T09:25:56Z'
     CreateTodoRequest:
       type: object
       required:
@@ -495,45 +526,6 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
-    ListTodoListsResponse:
-      description: The list of Todo lists with pagination metadata.
-      content:
-        application/json:
-          schema:
-            required:
-              - data
-              - pagination
-            properties:
-              data:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TodoListResponse'
-              pagination:
-                $ref: '#/components/schemas/PaginationMetadata'
-    BadRequest:
-      description: Bad Request.
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/ProblemDetails'
-    Unauthorized:
-      description: Unauthorized. The request requires authentication.
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/ProblemDetails'
-    UnprocessableEntity:
-      description: Unprocessable Entity.
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/ProblemDetails'
-    NotFound:
-      description: The specified resource was not found
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/ProblemDetails'
     ListTodosResponse:
       description: The list of Todos with pagination metadata.
       content:
@@ -549,3 +541,42 @@ components:
                   $ref: '#/components/schemas/TodoResponse'
               pagination:
                 $ref: '#/components/schemas/PaginationMetadata'
+    BadRequest:
+      description: Bad Request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Unauthorized:
+      description: Unauthorized. The request requires authentication.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    ListTodoListsResponse:
+      description: The list of Todo lists with pagination metadata.
+      content:
+        application/json:
+          schema:
+            required:
+              - data
+              - pagination
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TodoListResponse'
+              pagination:
+                $ref: '#/components/schemas/PaginationMetadata'
+    UnprocessableEntity:
+      description: Unprocessable Entity.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NotFound:
+      description: The specified resource was not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'

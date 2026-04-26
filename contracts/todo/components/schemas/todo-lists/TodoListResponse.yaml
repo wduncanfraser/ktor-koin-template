@@ -9,7 +9,7 @@ required:
 - updatedAt
 properties:
   id:
-    type: string
+    $ref: ./TodoListId.yaml
   name:
     $ref: ./TodoListName.yaml
   description:

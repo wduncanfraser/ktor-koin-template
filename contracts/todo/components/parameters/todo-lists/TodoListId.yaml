@@ -4,4 +4,4 @@ in: path
 description: The unique identifier of the Todo list.
 required: true
 schema:
-  type: string
+  $ref: ../../schemas/todo-lists/TodoListId.yaml

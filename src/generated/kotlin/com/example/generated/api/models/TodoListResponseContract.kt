@@ -10,6 +10,9 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 public data class TodoListResponseContract(
+  /**
+   * The unique identifier of the Todo.
+   */
   @SerialName("id")
   public val id: String,
   /**

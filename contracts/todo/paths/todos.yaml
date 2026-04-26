@@ -1,0 +1,19 @@
+---
+get:
+  summary: List all todos for the authenticated user
+  operationId: listTodos
+  tags:
+  - Todos
+  parameters:
+  - $ref: ../components/parameters/PageSize.yaml
+  - $ref: ../components/parameters/PageNumber.yaml
+  - $ref: ../components/parameters/todos/TodoCompleted.yaml
+  responses:
+    '200':
+      $ref: ../components/responses/todos/ListTodosResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    default:
+      $ref: ../components/responses/UnexpectedError.yaml

@@ -25,6 +25,19 @@ class TodoService(
     /**
      * Runs in a transaction to ensure list and count are consistent.
      */
+    suspend fun listAllTodos(
+        createdByUserId: String,
+        pageSize: Int,
+        page: Int,
+        completed: Boolean? = null,
+    ): TodoServiceResult<Page<Todo>> = ctx.resultTransactionCoroutine { c ->
+        todoRepository.listByUser(c.dsl(), createdByUserId, pageSize, page, completed)
+            .mapError { it.toServiceError() }
+    }
+
+    /**
+     * Runs in a transaction to ensure list and count are consistent.
+     */
     suspend fun listTodos(
         todoListId: UUID,
         pageSize: Int,

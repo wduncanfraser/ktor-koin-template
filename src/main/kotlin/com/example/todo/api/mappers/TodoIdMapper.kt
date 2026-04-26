@@ -1,4 +1,4 @@
-package com.example.todolist.api.mappers
+package com.example.todo.api.mappers
 
 import com.example.core.api.exceptions.ProblemDetailsException
 import com.github.michaelbull.result.getOrThrow

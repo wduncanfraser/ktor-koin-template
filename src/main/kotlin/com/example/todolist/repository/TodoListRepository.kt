@@ -3,6 +3,7 @@ package com.example.todolist.repository
 import com.example.core.domain.Page
 import com.example.core.repository.RepositoryConsts
 import com.example.core.repository.RepositoryResult
+import com.example.core.repository.PaginationUtil
 import com.example.core.repository.mapExpectingOne
 import com.example.core.repository.runWrappingError
 import com.example.core.repository.toNotFoundIfNull
@@ -22,22 +23,26 @@ import java.time.Duration
 import java.util.UUID
 
 class TodoListRepository {
+    /**
+     * Must be called within a transaction to ensure the count and list results are consistent.
+     */
     suspend fun list(
         ctx: DSLContext,
         createdByUserId: String,
         pageSize: Int,
         page: Int,
     ): RepositoryResult<Page<TodoList>> = runWrappingError {
+        val conditions = TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId)
         val totalRows = ctx.selectCount()
             .from(TODO_LIST)
-            .where(TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId))
+            .where(conditions)
             .awaitSingle()
             .get(0, Int::class.java)
-        val totalPages = (totalRows + pageSize - 1) / pageSize
-        val offset = (page - 1) * pageSize
+        val totalPages = PaginationUtil.calculateTotalPages(totalRows, pageSize)
+        val offset = PaginationUtil.calculateOffset(page, pageSize)
 
         val data = ctx.selectFrom(TODO_LIST)
-            .where(TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId))
+            .where(conditions)
             .orderBy(TODO_LIST.CREATED_AT.asc())
             .limit(pageSize)
             .offset(offset)

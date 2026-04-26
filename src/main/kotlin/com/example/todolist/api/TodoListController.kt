@@ -15,10 +15,10 @@ import com.example.generated.api.models.UpdateTodoListRequestContract
 import com.example.generated.api.models.UpdateTodoRequestContract
 import com.example.todo.services.TodoService
 import com.example.todo.services.TodoServiceError
-import com.example.todolist.api.mappers.TodoContractMapper
+import com.example.todo.api.mappers.TodoContractMapper
+import com.example.todo.api.mappers.TodoIdMapper
 import com.example.todolist.api.mappers.TodoListContractMapper
 import com.example.todolist.api.mappers.TodoListIdMapper
-import com.example.todolist.api.mappers.TodoIdMapper
 import com.example.todolist.services.TodoListService
 import com.example.todolist.services.TodoListServiceError
 import com.github.michaelbull.result.getOrThrow

@@ -10,6 +10,8 @@ servers:
 - url: http://localhost:8080/api/v1
   description: Local Development server
 paths:
+  /todos:
+    $ref: paths/todos.yaml
   /todo-lists:
     $ref: paths/todo-lists.yaml
   /todo-lists/{list-id}:
