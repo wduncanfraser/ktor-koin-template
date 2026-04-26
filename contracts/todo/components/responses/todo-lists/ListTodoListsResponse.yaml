@@ -1,0 +1,15 @@
+---
+description: The list of Todo lists with pagination metadata.
+content:
+  application/json:
+    schema:
+      required:
+      - data
+      - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: ../../schemas/todo-lists/TodoListResponse.yaml
+        pagination:
+          $ref: ../../schemas/PaginationMetadata.yaml

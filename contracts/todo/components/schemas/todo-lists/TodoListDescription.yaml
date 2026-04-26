@@ -1,0 +1,5 @@
+---
+type: string
+description: An optional description of the Todo list.
+example: Weekly grocery shopping items
+nullable: true

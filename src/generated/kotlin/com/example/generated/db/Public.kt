@@ -6,6 +6,7 @@ package com.example.generated.db
 
 import com.example.generated.db.tables.SchemaMigrations
 import com.example.generated.db.tables.Todo
+import com.example.generated.db.tables.TodoList
 
 import kotlin.collections.List
 
@@ -39,10 +40,16 @@ open class Public : SchemaImpl(DSL.name("public"), DefaultCatalog.DEFAULT_CATALO
      */
     val TODO: Todo get() = Todo.TODO
 
+    /**
+     * A named collection of todo items belonging to a user.
+     */
+    val TODO_LIST: TodoList get() = TodoList.TODO_LIST
+
     override fun getCatalog(): Catalog = DefaultCatalog.DEFAULT_CATALOG
 
     override fun getTables(): List<Table<*>> = listOf(
         SchemaMigrations.SCHEMA_MIGRATIONS,
-        Todo.TODO
+        Todo.TODO,
+        TodoList.TODO_LIST
     )
 }

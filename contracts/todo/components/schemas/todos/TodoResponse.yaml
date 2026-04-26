@@ -5,6 +5,7 @@ required:
 - id
 - name
 - completed
+- createdBy
 - createdAt
 - updatedAt
 properties:
@@ -19,6 +20,9 @@ properties:
     type: string
     description: Date and time when the Todo was marked completed.
     format: date-time
+  createdBy:
+    type: string
+    description: The id of the user who created this todo item.
   createdAt:
     $ref: ../CreatedAt.yaml
   updatedAt:
@@ -28,5 +32,6 @@ example:
   name: Cook dinner
   completed: true
   completedAt: '2020-01-13T09:25:56Z'
+  createdBy: '123456789012345678'
   createdAt: '2019-08-24T14:15:22Z'
   updatedAt: '2020-01-13T09:25:56Z'

@@ -1,10 +1,11 @@
 ---
 get:
-  summary: List all todos
-  operationId: listTodos
+  summary: List all todos in a todo list
+  operationId: listTodosInList
   tags:
-  - Todos
+  - TodoLists
   parameters:
+  - $ref: ../components/parameters/todo-lists/TodoListId.yaml
   - $ref: ../components/parameters/PageSize.yaml
   - $ref: ../components/parameters/PageNumber.yaml
   - $ref: ../components/parameters/todos/TodoCompleted.yaml
@@ -15,13 +16,17 @@ get:
       $ref: ../components/responses/BadRequest.yaml
     '401':
       $ref: ../components/responses/Unauthorized.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
     default:
       $ref: ../components/responses/UnexpectedError.yaml
 post:
-  summary: Create a todo
-  operationId: createTodo
+  summary: Create a todo in a todo list
+  operationId: createTodoInList
   tags:
-  - Todos
+  - TodoLists
+  parameters:
+  - $ref: ../components/parameters/todo-lists/TodoListId.yaml
   requestBody:
     required: true
     description: The request body for creating a Todo.
@@ -40,6 +45,8 @@ post:
       $ref: ../components/responses/BadRequest.yaml
     '401':
       $ref: ../components/responses/Unauthorized.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
     '422':
       $ref: ../components/responses/UnprocessableEntity.yaml
     default:

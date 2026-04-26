@@ -56,11 +56,18 @@ open class TodoRecord() : UpdatableRecordImpl<TodoRecord>(Todo.TODO) {
         get(): Instant? = get(4) as Instant?
 
     /**
-     * The id of the user who owns this todo item.
+     * The id of the user who created this todo item.
      */
-    open var userId: String?
+    open var createdByUserId: String?
         set(value): Unit = set(5, value)
         get(): String? = get(5) as String?
+
+    /**
+     * The id of the todo list this item belongs to.
+     */
+    open var todoListId: UUID?
+        set(value): Unit = set(6, value)
+        get(): UUID? = get(6) as UUID?
 
     // -------------------------------------------------------------------------
     // Primary key information
@@ -71,13 +78,14 @@ open class TodoRecord() : UpdatableRecordImpl<TodoRecord>(Todo.TODO) {
     /**
      * Create a detached, initialised TodoRecord
      */
-    constructor(id: UUID? = null, name: String? = null, completedAt: Instant? = null, createdAt: Instant? = null, updatedAt: Instant? = null, userId: String? = null): this() {
+    constructor(id: UUID? = null, name: String? = null, completedAt: Instant? = null, createdAt: Instant? = null, updatedAt: Instant? = null, createdByUserId: String? = null, todoListId: UUID? = null): this() {
         this.id = id
         this.name = name
         this.completedAt = completedAt
         this.createdAt = createdAt
         this.updatedAt = updatedAt
-        this.userId = userId
+        this.createdByUserId = createdByUserId
+        this.todoListId = todoListId
         resetTouchedOnNotNull()
     }
 }

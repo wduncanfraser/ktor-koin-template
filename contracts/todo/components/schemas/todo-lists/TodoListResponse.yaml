@@ -1,0 +1,30 @@
+---
+type: object
+description: A todo list.
+required:
+- id
+- name
+- createdBy
+- createdAt
+- updatedAt
+properties:
+  id:
+    type: string
+  name:
+    $ref: ./TodoListName.yaml
+  description:
+    $ref: ./TodoListDescription.yaml
+  createdBy:
+    type: string
+    description: The id of the user who created this todo list.
+  createdAt:
+    $ref: ../CreatedAt.yaml
+  updatedAt:
+    $ref: ../UpdatedAt.yaml
+example:
+  id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+  name: Shopping
+  description: Weekly grocery shopping items
+  createdBy: '123456789012345678'
+  createdAt: '2019-08-24T14:15:22Z'
+  updatedAt: '2020-01-13T09:25:56Z'

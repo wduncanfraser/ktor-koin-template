@@ -25,20 +25,22 @@ import kotlin.Boolean
 import kotlin.Int
 import kotlin.String
 
-public interface TodosController {
+public interface TodoListsTodosController {
   /**
-   * List all todos
+   * List all todos in a todo list
    *
    * Route is expected to respond with [com.example.generated.api.models.ListTodosResponseContract].
    * Use [com.example.generated.api.controllers.TypedApplicationCall.respondTyped] to send the
    * response.
    *
+   * @param listId The unique identifier of the Todo list.
    * @param pageSize The number of items to return in a single request.
    * @param page The page number of results to return.
    * @param completed Filter for todos to only list completed vs incomplete records.
    * @param call Decorated ApplicationCall with additional typed respond methods
    */
-  public suspend fun listTodos(
+  public suspend fun listTodosInList(
+    listId: String,
     pageSize: Int?,
     page: Int?,
     completed: Boolean?,
@@ -46,91 +48,112 @@ public interface TodosController {
   )
 
   /**
-   * Create a todo
+   * Create a todo in a todo list
    *
    * Route is expected to respond with [com.example.generated.api.models.TodoResponseContract].
    * Use [com.example.generated.api.controllers.TypedApplicationCall.respondTyped] to send the
    * response.
    *
    * @param createTodoRequest The request body for creating a Todo.
+   * @param listId The unique identifier of the Todo list.
    * @param call Decorated ApplicationCall with additional typed respond methods
    */
-  public suspend fun createTodo(createTodoRequest: CreateTodoRequestContract,
-      call: TypedApplicationCall<TodoResponseContract>)
+  public suspend fun createTodoInList(
+    listId: String,
+    createTodoRequest: CreateTodoRequestContract,
+    call: TypedApplicationCall<TodoResponseContract>,
+  )
 
   /**
-   * Get a todo
+   * Get a todo in a todo list
    *
    * Route is expected to respond with [com.example.generated.api.models.TodoResponseContract].
    * Use [com.example.generated.api.controllers.TypedApplicationCall.respondTyped] to send the
    * response.
    *
+   * @param listId The unique identifier of the Todo list.
    * @param todoId The unique identifier of the Todo.
    * @param call Decorated ApplicationCall with additional typed respond methods
    */
-  public suspend fun getTodo(todoId: String, call: TypedApplicationCall<TodoResponseContract>)
+  public suspend fun getTodoInList(
+    listId: String,
+    todoId: String,
+    call: TypedApplicationCall<TodoResponseContract>,
+  )
 
   /**
-   * Update a todo
+   * Update a todo in a todo list
    *
    * Route is expected to respond with [com.example.generated.api.models.TodoResponseContract].
    * Use [com.example.generated.api.controllers.TypedApplicationCall.respondTyped] to send the
    * response.
    *
    * @param updateTodoRequest The request body for updating a Todo.
+   * @param listId The unique identifier of the Todo list.
    * @param todoId The unique identifier of the Todo.
    * @param call Decorated ApplicationCall with additional typed respond methods
    */
-  public suspend fun updateTodo(
+  public suspend fun updateTodoInList(
+    listId: String,
     todoId: String,
     updateTodoRequest: UpdateTodoRequestContract,
     call: TypedApplicationCall<TodoResponseContract>,
   )
 
   /**
-   * Delete a todo
+   * Delete a todo in a todo list
    *
    * Route is expected to respond with status 204.
    * Use [io.ktor.server.response.respond] to send the response.
    *
+   * @param listId The unique identifier of the Todo list.
    * @param todoId The unique identifier of the Todo.
    * @param call The Ktor application call
    */
-  public suspend fun deleteTodo(todoId: String, call: ApplicationCall)
+  public suspend fun deleteTodoInList(
+    listId: String,
+    todoId: String,
+    call: ApplicationCall,
+  )
 
   public companion object {
     /**
-     * Mounts all routes for the Todos resource
+     * Mounts all routes for the TodoListsTodos resource
      *
-     * - GET /todos List all todos
-     * - POST /todos Create a todo
-     * - GET /todos/{todo-id} Get a todo
-     * - PUT /todos/{todo-id} Update a todo
-     * - DELETE /todos/{todo-id} Delete a todo
+     * - GET /todo-lists/{list-id}/todos List all todos in a todo list
+     * - POST /todo-lists/{list-id}/todos Create a todo in a todo list
+     * - GET /todo-lists/{list-id}/todos/{todo-id} Get a todo in a todo list
+     * - PUT /todo-lists/{list-id}/todos/{todo-id} Update a todo in a todo list
+     * - DELETE /todo-lists/{list-id}/todos/{todo-id} Delete a todo in a todo list
      */
-    public fun Route.todosRoutes(controller: TodosController) {
-      `get`("/todos") {
+    public fun Route.todoListsTodosRoutes(controller: TodoListsTodosController) {
+      `get`("/todo-lists/{list-id}/todos") {
+        val listId = call.parameters.getTypedOrFail<kotlin.String>("list-id")
         val pageSize = call.request.queryParameters.getTyped<kotlin.Int>("pageSize")
         val page = call.request.queryParameters.getTyped<kotlin.Int>("page")
         val completed = call.request.queryParameters.getTyped<kotlin.Boolean>("completed")
-        controller.listTodos(pageSize, page, completed, TypedApplicationCall(call))
+        controller.listTodosInList(listId, pageSize, page, completed, TypedApplicationCall(call))
       }
-      post("/todos") {
+      post("/todo-lists/{list-id}/todos") {
+        val listId = call.parameters.getTypedOrFail<kotlin.String>("list-id")
         val createTodoRequest = call.receive<CreateTodoRequestContract>()
-        controller.createTodo(createTodoRequest, TypedApplicationCall(call))
+        controller.createTodoInList(listId, createTodoRequest, TypedApplicationCall(call))
       }
-      `get`("/todos/{todo-id}") {
+      `get`("/todo-lists/{list-id}/todos/{todo-id}") {
+        val listId = call.parameters.getTypedOrFail<kotlin.String>("list-id")
         val todoId = call.parameters.getTypedOrFail<kotlin.String>("todo-id")
-        controller.getTodo(todoId, TypedApplicationCall(call))
+        controller.getTodoInList(listId, todoId, TypedApplicationCall(call))
       }
-      put("/todos/{todo-id}") {
+      put("/todo-lists/{list-id}/todos/{todo-id}") {
+        val listId = call.parameters.getTypedOrFail<kotlin.String>("list-id")
         val todoId = call.parameters.getTypedOrFail<kotlin.String>("todo-id")
         val updateTodoRequest = call.receive<UpdateTodoRequestContract>()
-        controller.updateTodo(todoId, updateTodoRequest, TypedApplicationCall(call))
+        controller.updateTodoInList(listId, todoId, updateTodoRequest, TypedApplicationCall(call))
       }
-      delete("/todos/{todo-id}") {
+      delete("/todo-lists/{list-id}/todos/{todo-id}") {
+        val listId = call.parameters.getTypedOrFail<kotlin.String>("list-id")
         val todoId = call.parameters.getTypedOrFail<kotlin.String>("todo-id")
-        controller.deleteTodo(todoId, call)
+        controller.deleteTodoInList(listId, todoId, call)
       }
     }
 

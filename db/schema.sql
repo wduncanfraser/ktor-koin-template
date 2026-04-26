@@ -89,7 +89,8 @@ CREATE TABLE public.todo (
     completed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    user_id text NOT NULL
+    created_by_user_id text CONSTRAINT todo_user_id_not_null NOT NULL,
+    todo_list_id uuid NOT NULL
 );
 
 
@@ -136,10 +137,80 @@ COMMENT ON COLUMN public.todo.updated_at IS 'The date / time that this record wa
 
 
 --
--- Name: COLUMN todo.user_id; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN todo.created_by_user_id; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.todo.user_id IS 'The id of the user who owns this todo item.';
+COMMENT ON COLUMN public.todo.created_by_user_id IS 'The id of the user who created this todo item.';
+
+
+--
+-- Name: COLUMN todo.todo_list_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.todo.todo_list_id IS 'The id of the todo list this item belongs to.';
+
+
+--
+-- Name: todo_list; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.todo_list (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    description text,
+    created_by_user_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: TABLE todo_list; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.todo_list IS 'A named collection of todo items belonging to a user.';
+
+
+--
+-- Name: COLUMN todo_list.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.todo_list.id IS 'The unique id (Primary Key) for this table.';
+
+
+--
+-- Name: COLUMN todo_list.name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.todo_list.name IS 'The name of the todo list.';
+
+
+--
+-- Name: COLUMN todo_list.description; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.todo_list.description IS 'An optional description of the todo list.';
+
+
+--
+-- Name: COLUMN todo_list.created_by_user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.todo_list.created_by_user_id IS 'The id of the user who created this todo list.';
+
+
+--
+-- Name: COLUMN todo_list.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.todo_list.created_at IS 'The date / time that this record was created.';
+
+
+--
+-- Name: COLUMN todo_list.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.todo_list.updated_at IS 'The date / time that this record was last updated.';
 
 
 --
@@ -151,6 +222,14 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
+-- Name: todo_list todo_list_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.todo_list
+    ADD CONSTRAINT todo_list_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: todo todo_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -159,10 +238,24 @@ ALTER TABLE ONLY public.todo
 
 
 --
--- Name: idx_todo_user_id; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_todo_created_by_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_todo_user_id ON public.todo USING btree (user_id);
+CREATE INDEX idx_todo_created_by_user_id ON public.todo USING btree (created_by_user_id);
+
+
+--
+-- Name: idx_todo_list_created_by_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_todo_list_created_by_user_id ON public.todo_list USING btree (created_by_user_id);
+
+
+--
+-- Name: idx_todo_todo_list_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_todo_todo_list_id ON public.todo USING btree (todo_list_id);
 
 
 --
@@ -170,6 +263,21 @@ CREATE INDEX idx_todo_user_id ON public.todo USING btree (user_id);
 --
 
 CREATE TRIGGER trg_table_modified BEFORE UPDATE ON public.todo FOR EACH ROW EXECUTE FUNCTION util.f_update_standard_modified_fields();
+
+
+--
+-- Name: todo_list trg_todo_list_modified; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_todo_list_modified BEFORE UPDATE ON public.todo_list FOR EACH ROW EXECUTE FUNCTION util.f_update_standard_modified_fields();
+
+
+--
+-- Name: todo fk_todo_list; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.todo
+    ADD CONSTRAINT fk_todo_list FOREIGN KEY (todo_list_id) REFERENCES public.todo_list(id) ON DELETE CASCADE;
 
 
 --
@@ -187,4 +295,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20250719163205'),
     ('20250719163501'),
     ('20250719174315'),
-    ('20260304000000');
+    ('20260304000000'),
+    ('20260426000000'),
+    ('20260426000001');

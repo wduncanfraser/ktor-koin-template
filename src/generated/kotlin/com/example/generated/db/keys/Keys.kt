@@ -7,12 +7,16 @@ package com.example.generated.db.keys
 
 import com.example.generated.db.tables.SchemaMigrations
 import com.example.generated.db.tables.Todo
+import com.example.generated.db.tables.TodoList
 import com.example.generated.db.tables.records.SchemaMigrationsRecord
+import com.example.generated.db.tables.records.TodoListRecord
 import com.example.generated.db.tables.records.TodoRecord
 
+import org.jooq.ForeignKey
 import org.jooq.UniqueKey
 import org.jooq.impl.DSL
 import org.jooq.impl.Internal
+import org.jooq.impl.QOM.ForeignKeyRule
 
 
 
@@ -22,3 +26,10 @@ import org.jooq.impl.Internal
 
 val SCHEMA_MIGRATIONS_PKEY: UniqueKey<SchemaMigrationsRecord> = Internal.createUniqueKey(SchemaMigrations.SCHEMA_MIGRATIONS, DSL.name("schema_migrations_pkey"), arrayOf(SchemaMigrations.SCHEMA_MIGRATIONS.VERSION), true)
 val TODO_PKEY: UniqueKey<TodoRecord> = Internal.createUniqueKey(Todo.TODO, DSL.name("todo_pkey"), arrayOf(Todo.TODO.ID), true)
+val TODO_LIST_PKEY: UniqueKey<TodoListRecord> = Internal.createUniqueKey(TodoList.TODO_LIST, DSL.name("todo_list_pkey"), arrayOf(TodoList.TODO_LIST.ID), true)
+
+// -------------------------------------------------------------------------
+// FOREIGN KEY definitions
+// -------------------------------------------------------------------------
+
+val TODO__FK_TODO_LIST: ForeignKey<TodoRecord, TodoListRecord> = Internal.createForeignKey(Todo.TODO, DSL.name("fk_todo_list"), arrayOf(Todo.TODO.TODO_LIST_ID), com.example.generated.db.keys.TODO_LIST_PKEY, arrayOf(TodoList.TODO_LIST.ID), true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION)

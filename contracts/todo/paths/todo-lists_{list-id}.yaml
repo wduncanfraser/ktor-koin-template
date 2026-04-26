@@ -1,18 +1,18 @@
 ---
 get:
-  summary: Get a todo
-  operationId: getTodo
+  summary: Get a todo list
+  operationId: getTodoList
   tags:
-  - Todos
+  - TodoLists
   parameters:
-  - $ref: ../components/parameters/todos/TodoId.yaml
+  - $ref: ../components/parameters/todo-lists/TodoListId.yaml
   responses:
     '200':
-      description: Todo was retrieved successfully.
+      description: Todo list was retrieved successfully.
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/todos/TodoResponse.yaml
+            $ref: ../components/schemas/todo-lists/TodoListResponse.yaml
     '400':
       $ref: ../components/responses/BadRequest.yaml
     '401':
@@ -22,26 +22,26 @@ get:
     default:
       $ref: ../components/responses/UnexpectedError.yaml
 put:
-  summary: Update a todo
-  operationId: updateTodo
+  summary: Update a todo list
+  operationId: updateTodoList
   tags:
-  - Todos
+  - TodoLists
   parameters:
-  - $ref: ../components/parameters/todos/TodoId.yaml
+  - $ref: ../components/parameters/todo-lists/TodoListId.yaml
   requestBody:
     required: true
-    description: The request body for updating a Todo.
+    description: The request body for updating a Todo list.
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/todos/UpdateTodoRequest.yaml
+          $ref: ../components/schemas/todo-lists/UpdateTodoListRequest.yaml
   responses:
     '200':
-      description: Todo was updated successfully.
+      description: Todo list was updated successfully.
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/todos/TodoResponse.yaml
+            $ref: ../components/schemas/todo-lists/TodoListResponse.yaml
     '400':
       $ref: ../components/responses/BadRequest.yaml
     '401':
@@ -53,15 +53,15 @@ put:
     default:
       $ref: ../components/responses/UnexpectedError.yaml
 delete:
-  summary: Delete a todo
-  operationId: deleteTodo
+  summary: Delete a todo list
+  operationId: deleteTodoList
   tags:
-  - Todos
+  - TodoLists
   parameters:
-  - $ref: ../components/parameters/todos/TodoId.yaml
+  - $ref: ../components/parameters/todo-lists/TodoListId.yaml
   responses:
     '204':
-      description: Todo was deleted successfully.
+      description: Todo list was deleted successfully.
     '400':
       $ref: ../components/responses/BadRequest.yaml
     '401':

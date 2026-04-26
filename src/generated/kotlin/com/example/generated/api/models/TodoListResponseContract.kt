@@ -1,35 +1,29 @@
 package com.example.generated.api.models
 
-import kotlin.Boolean
 import kotlin.String
 import kotlin.time.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * A todo item.
+ * A todo list.
  */
 @Serializable
-public data class TodoResponseContract(
+public data class TodoListResponseContract(
   @SerialName("id")
   public val id: String,
   /**
-   * The name of the Todo.
+   * The name of the Todo list.
    */
   @SerialName("name")
   public val name: String,
   /**
-   * Is the Todo completed.
+   * An optional description of the Todo list.
    */
-  @SerialName("completed")
-  public val completed: Boolean,
+  @SerialName("description")
+  public val description: String? = null,
   /**
-   * Date and time when the Todo was marked completed.
-   */
-  @SerialName("completedAt")
-  public val completedAt: Instant? = null,
-  /**
-   * The id of the user who created this todo item.
+   * The id of the user who created this todo list.
    */
   @SerialName("createdBy")
   public val createdBy: String,

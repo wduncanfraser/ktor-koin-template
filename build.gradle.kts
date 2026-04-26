@@ -172,7 +172,7 @@ tasks {
 
     val deleteGeneratedApi by registering(Delete::class) {
         group = "Fabrikt"
-        delete("$generationDir/kotlin/com/example/generate/api")
+        delete("$generationDir/kotlin/com/example/generated/api")
     }
 
     val generateApi by registering(JavaExec::class) {
