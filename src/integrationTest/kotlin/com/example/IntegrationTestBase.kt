@@ -3,6 +3,7 @@ package com.example
 import com.example.authn.RedisSessionStorage
 import com.example.authn.UserSession
 import com.example.config.AuthenticationConfig
+import com.example.config.CorsConfig
 import com.example.config.DatabaseConfig
 import com.example.config.OAuthConfig
 import com.example.config.RedisConfig
@@ -34,7 +35,7 @@ import java.sql.DriverManager
 import java.time.Duration
 import java.util.UUID
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.days
 
 abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : FunSpec() {
     private lateinit var testApp: TestApplication
@@ -73,6 +74,7 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
                     databaseConfig = databaseConfig,
                     redisConfig = redisConfig,
                     authConfig = authConfig,
+                    corsConfig = CorsConfig(allowedHosts = "localhost:5173"),
                 )
             }
         }
@@ -164,14 +166,14 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
             userId = "test-user-id",
             accessToken = "test-access-token",
             refreshToken = null,
-            expiration = Clock.System.now().plus(24.hours),
+            expiration = Clock.System.now().plus(7.days),
         )
 
         fun secondTestSession() = UserSession(
             userId = "test-user-id-2",
             accessToken = "test-access-token-2",
             refreshToken = null,
-            expiration = Clock.System.now().plus(24.hours),
+            expiration = Clock.System.now().plus(7.days),
         )
     }
 }
