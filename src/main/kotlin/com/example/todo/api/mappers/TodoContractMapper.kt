@@ -22,9 +22,11 @@ object TodoContractMapper {
 
     fun toContract(todo: Todo) = TodoResponseContract(
         id = todo.id.toString(),
+        todoListId = todo.todoListId.toString(),
         name = todo.name,
         completed = todo.completedAt != null,
         completedAt = todo.completedAt,
+        createdBy = todo.createdByUserId,
         createdAt = todo.createdAt,
         updatedAt = todo.updatedAt,
     )

@@ -1,9 +1,8 @@
-package com.example.todo.repository
+package com.example
 
-import com.example.IntegrationTestBase
 import com.example.core.repository.RepositoryError
-import com.example.resultTransactionCoroutine
-import com.example.todo.domain.TodoForSave
+import com.example.todolist.domain.TodoListForSave
+import com.example.todolist.repository.TodoListRepository
 import com.github.michaelbull.result.getError
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -15,15 +14,24 @@ import org.jooq.DSLContext
 import org.koin.ktor.ext.get
 import java.time.Duration
 import java.util.UUID
+import kotlin.time.Duration.Companion.milliseconds
 
-class TodoRepositoryIntegrationTest : IntegrationTestBase({
+class RepositoryPatternsIntegrationTest : IntegrationTestBase({
     test("getById successfully acquires lock after previous transaction completes") {
         val ctx = application.get<DSLContext>()
-        val repository = application.get<TodoRepository>()
+        val repository = application.get<TodoListRepository>()
         val id = UUID.randomUUID()
 
         ctx.resultTransactionCoroutine { c ->
-            repository.upsert(c, TodoForSave(id = id, name = "Lock test", completedAt = null, userId = "test-user"))
+            repository.upsert(
+                c = c,
+                todoList = TodoListForSave(
+                    id = id,
+                    name = "Lock test",
+                    description = null,
+                    createdByUserId = "test-user",
+                ),
+            )
         }
 
         val lockAcquired = CompletableDeferred<Unit>()
@@ -49,7 +57,7 @@ class TodoRepositoryIntegrationTest : IntegrationTestBase({
             }
 
             // Give the second transaction time to issue its SELECT FOR UPDATE before releasing
-            delay(100)
+            delay(100.milliseconds)
             releaseLock.complete(Unit)
             lockHolder.await()
 
@@ -59,12 +67,19 @@ class TodoRepositoryIntegrationTest : IntegrationTestBase({
 
     test("getById returns UnhandledException on lock wait timeout") {
         val ctx = application.get<DSLContext>()
-        val repository = application.get<TodoRepository>()
+        val repository = application.get<TodoListRepository>()
         val id = UUID.randomUUID()
 
-        // Insert the row that will be locked
         ctx.resultTransactionCoroutine { c ->
-            repository.upsert(c, TodoForSave(id = id, name = "Lock test", completedAt = null, userId = "test-user"))
+            repository.upsert(
+                c = c,
+                todoList = TodoListForSave(
+                    id = id,
+                    name = "Lock test",
+                    description = null,
+                    createdByUserId = "test-user",
+                ),
+            )
         }
 
         val lockAcquired = CompletableDeferred<Unit>()
@@ -88,7 +103,7 @@ class TodoRepositoryIntegrationTest : IntegrationTestBase({
             val result = ctx.resultTransactionCoroutine { config ->
                 repository.getById(
                     ctx = config.dsl(),
-                    userId = "test-user",
+                    createdByUserId = "test-user",
                     id = id,
                     lockRecords = true,
                     lockWait = Duration.ofMillis(100),

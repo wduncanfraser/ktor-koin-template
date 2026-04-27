@@ -3,13 +3,14 @@ package com.example.todo.repository
 import com.example.core.domain.Page
 import com.example.core.repository.RepositoryConsts
 import com.example.core.repository.RepositoryResult
+import com.example.core.repository.PaginationUtil
 import com.example.core.repository.mapExpectingOne
 import com.example.core.repository.runWrappingError
 import com.example.core.repository.toNotFoundIfNull
-import com.example.todo.repository.mappers.TodoMapper
 import com.example.generated.db.tables.references.TODO
 import com.example.todo.domain.Todo
 import com.example.todo.domain.TodoForSave
+import com.example.todo.repository.mappers.TodoMapper
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactive.asFlow
@@ -24,25 +25,59 @@ import java.util.UUID
 
 class TodoRepository {
     /**
-     * List all [Todo]s based on the given parameters.
+     * Must be called within a transaction to ensure the count and list results are consistent.
      */
     suspend fun list(
         ctx: DSLContext,
-        userId: String,
+        todoListId: UUID,
         pageSize: Int,
         page: Int,
         completed: Boolean? = null,
+    ): RepositoryResult<Page<Todo>> {
+        var conditions = TODO.TODO_LIST_ID.eq(todoListId)
+        if (completed == true) {
+            conditions = conditions.and(TODO.COMPLETED_AT.isNotNull)
+        } else if (completed == false) {
+            conditions = conditions.and(TODO.COMPLETED_AT.isNull)
+        }
+        return listPaged(ctx, conditions, pageSize, page)
+    }
+
+    /**
+     * Must be called within a transaction to ensure the count and list results are consistent.
+     */
+    suspend fun listByUser(
+        ctx: DSLContext,
+        createdByUserId: String,
+        pageSize: Int,
+        page: Int,
+        completed: Boolean? = null,
+    ): RepositoryResult<Page<Todo>> {
+        var conditions = TODO.CREATED_BY_USER_ID.eq(createdByUserId)
+        if (completed == true) {
+            conditions = conditions.and(TODO.COMPLETED_AT.isNotNull)
+        } else if (completed == false) {
+            conditions = conditions.and(TODO.COMPLETED_AT.isNull)
+        }
+        return listPaged(ctx, conditions, pageSize, page)
+    }
+
+    private suspend fun listPaged(
+        ctx: DSLContext,
+        conditions: Condition,
+        pageSize: Int,
+        page: Int,
     ): RepositoryResult<Page<Todo>> = runWrappingError {
         val totalRows = ctx.selectCount()
             .from(TODO)
-            .where(todoConditions(userId, completed))
+            .where(conditions)
             .awaitSingle()
             .get(0, Int::class.java)
-        val totalPages = (totalRows + pageSize - 1) / pageSize
-        val offset = (page - 1) * pageSize
+        val totalPages = PaginationUtil.calculateTotalPages(totalRows, pageSize)
+        val offset = PaginationUtil.calculateOffset(page, pageSize)
 
         val data = ctx.selectFrom(TODO)
-            .where(todoConditions(userId, completed))
+            .where(conditions)
             .orderBy(TODO.CREATED_AT.asc())
             .limit(pageSize)
             .offset(offset)
@@ -60,12 +95,11 @@ class TodoRepository {
     }
 
     /**
-     * Get a single [Todo] by [id]
      * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if no [Todo] was found.
      */
     suspend fun getById(
         ctx: DSLContext,
-        userId: String,
+        todoListId: UUID,
         id: UUID,
         lockRecords: Boolean = false,
         lockWait: Duration = RepositoryConsts.DEFAULT_LOCK_TIMEOUT,
@@ -76,7 +110,7 @@ class TodoRepository {
             ctx.setLocal("lock_timeout", DSL.inline(lockWait.toMillis().toString())).awaitFirstOrNull()
         }
         ctx.selectFrom(TODO)
-            .where(TODO.ID.eq(id).and(TODO.USER_ID.eq(userId)))
+            .where(TODO.ID.eq(id).and(TODO.TODO_LIST_ID.eq(todoListId)))
             .apply {
                 if (lockRecords) {
                     this.forUpdate()
@@ -88,9 +122,6 @@ class TodoRepository {
             ?.let(TodoMapper::toDomain)
     }.toNotFoundIfNull()
 
-    /**
-     * Insert or update a [Todo] and return the created entity
-     */
     suspend fun upsert(
         c: Configuration,
         todo: TodoForSave,
@@ -103,35 +134,21 @@ class TodoRepository {
             .set(record)
             .returning()
             .awaitSingle()
-
         TodoMapper.toDomain(result)
     }
 
     /**
-     * Delete a given [Todo] by [id]
      * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if nothing was deleted.
      */
     suspend fun delete(
         c: Configuration,
-        userId: String,
+        todoListId: UUID,
         id: UUID,
     ): RepositoryResult<Unit> = runWrappingError {
         c.dsl()
             .deleteFrom(TODO)
-            .where(TODO.ID.eq(id).and(TODO.USER_ID.eq(userId)))
+            .where(TODO.ID.eq(id).and(TODO.TODO_LIST_ID.eq(todoListId)))
             .awaitSingle()
     }.mapExpectingOne()
 
-    /**
-     * Common conditions to a list/count [Todo]s query.
-     */
-    private fun todoConditions(userId: String, completed: Boolean?): Condition {
-        var conditions = TODO.USER_ID.eq(userId)
-        if (completed == true) {
-            conditions = conditions.and(TODO.COMPLETED_AT.isNotNull)
-        } else if (completed == false) {
-            conditions = conditions.and(TODO.COMPLETED_AT.isNull)
-        }
-        return conditions
-    }
 }

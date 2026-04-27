@@ -1,0 +1,9 @@
+---
+type: object
+required:
+- name
+properties:
+  name:
+    $ref: ./TodoListName.yaml
+  description:
+    $ref: ./TodoListDescription.yaml

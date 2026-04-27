@@ -1,0 +1,4 @@
+---
+type: string
+description: The unique identifier of the Todo.
+example: 00000000-0000-0000-0000-000000000000

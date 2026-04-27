@@ -23,59 +23,65 @@ class TodoService(
     private val todoRepository: TodoRepository,
 ) {
     /**
-     * Get a list/page of [Todo]s.
      * Runs in a transaction to ensure list and count are consistent.
      */
-    suspend fun listTodos(
-        userId: String,
+    suspend fun listAllTodos(
+        createdByUserId: String,
         pageSize: Int,
         page: Int,
         completed: Boolean? = null,
-    ): TodoServiceResult<Page<Todo>> {
-        return ctx.resultTransactionCoroutine { c ->
-            todoRepository.list(c.dsl(), userId, pageSize, page, completed)
-                .mapError { it.toServiceError() }
-        }
+    ): TodoServiceResult<Page<Todo>> = ctx.resultTransactionCoroutine { c ->
+        todoRepository.listByUser(c.dsl(), createdByUserId, pageSize, page, completed)
+            .mapError { it.toServiceError() }
     }
 
     /**
-     * Get a single [Todo] by [id].
+     * Runs in a transaction to ensure list and count are consistent.
+     */
+    suspend fun listTodos(
+        todoListId: UUID,
+        pageSize: Int,
+        page: Int,
+        completed: Boolean? = null,
+    ): TodoServiceResult<Page<Todo>> = ctx.resultTransactionCoroutine { c ->
+        todoRepository.list(c.dsl(), todoListId, pageSize, page, completed)
+            .mapError { it.toServiceError() }
+    }
+
+    /**
      * Returns [TodoServiceError.TodoNotFound] if no [Todo] was found.
      */
-    suspend fun getTodo(userId: String, id: UUID): TodoServiceResult<Todo> {
-        return todoRepository.getById(ctx, userId, id)
+    suspend fun getTodo(todoListId: UUID, id: UUID): TodoServiceResult<Todo> {
+        return todoRepository.getById(ctx, todoListId, id)
             .mapError { it.toServiceError(TodoServiceError.TodoNotFound(id)) }
     }
 
-    /**
-     * Create a new [Todo] from a [TodoForCreate].
-     */
     suspend fun createTodo(
-        userId: String,
+        todoListId: UUID,
+        createdByUserId: String,
         todoForCreate: TodoForCreate,
     ): TodoServiceResult<Todo> = ctx.resultTransactionCoroutine { c ->
         coroutineBinding {
             todoForCreate.validate()
                 .mapError { TodoServiceError.ValidationFailed(it) }
                 .bind()
-            val todo = todoForCreate.toPersistenceModel(userId)
+            val todo = todoForCreate.toPersistenceModel(todoListId, createdByUserId)
             todoRepository.upsert(c, todo).mapError { it.toServiceError() }.bind()
         }
     }
 
     /**
-     * Update an existing [Todo] from a [TodoForUpdate]
      * Completed date is only set if not already completed.
      */
     suspend fun updateTodo(
-        userId: String,
+        todoListId: UUID,
         todoForUpdate: TodoForUpdate,
     ): TodoServiceResult<Todo> = ctx.resultTransactionCoroutine { c ->
         coroutineBinding {
             todoForUpdate.validate()
                 .mapError { TodoServiceError.ValidationFailed(it) }
                 .bind()
-            val todo = todoRepository.getById(c.dsl(), userId, todoForUpdate.id, lockRecords = true)
+            val todo = todoRepository.getById(c.dsl(), todoListId, todoForUpdate.id, lockRecords = true)
                 .mapError { it.toServiceError(notFoundError = TodoServiceError.TodoNotFound(todoForUpdate.id)) }
                 .bind()
             val updatedTodo = todo.toPersistenceModel().apply { update(todoForUpdate) }
@@ -85,22 +91,18 @@ class TodoService(
         }
     }
 
-
-    /**
-     * Delete an existing [Todo].
-     */
     suspend fun deleteTodo(
-        userId: String,
+        todoListId: UUID,
         id: UUID,
     ): Result<Unit, TodoServiceError> = ctx.resultTransactionCoroutine { c ->
-        todoRepository.delete(c, userId, id)
+        todoRepository.delete(c, todoListId, id)
             .mapError { it.toServiceError(TodoServiceError.TodoNotFound(id)) }
     }
 
     companion object {
         /**
-         * Converts an [RepositoryError] to a [TodoServiceError]. Takes an optional parameter for explicitly
-         * setting the error if the underlying Repository Error is [RepositoryError.RecordNotFound]
+         * Converts a [RepositoryError] to a [TodoServiceError]. Takes an optional parameter for explicitly
+         * setting the error if the underlying Repository Error is [RepositoryError.RecordNotFound].
          */
         private fun RepositoryError.toServiceError(
             notFoundError: TodoServiceError? = null,
@@ -121,9 +123,6 @@ class TodoService(
     }
 }
 
-/**
- * TodoService Error type
- */
 sealed class TodoServiceError {
     data class TodoNotFound(val id: UUID) : TodoServiceError()
     data class ValidationFailed(val errors: ValidationErrors) : TodoServiceError()

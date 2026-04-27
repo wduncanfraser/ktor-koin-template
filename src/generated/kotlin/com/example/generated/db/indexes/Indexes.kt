@@ -6,6 +6,7 @@ package com.example.generated.db.indexes
 
 
 import com.example.generated.db.tables.Todo
+import com.example.generated.db.tables.TodoList
 
 import org.jooq.Index
 import org.jooq.impl.DSL
@@ -17,4 +18,6 @@ import org.jooq.impl.Internal
 // INDEX definitions
 // -------------------------------------------------------------------------
 
-val IDX_TODO_USER_ID: Index = Internal.createIndex(DSL.name("idx_todo_user_id"), Todo.TODO, arrayOf(Todo.TODO.USER_ID), false)
+val IDX_TODO_CREATED_BY_USER_ID: Index = Internal.createIndex(DSL.name("idx_todo_created_by_user_id"), Todo.TODO, arrayOf(Todo.TODO.CREATED_BY_USER_ID), false)
+val IDX_TODO_LIST_CREATED_BY_USER_ID: Index = Internal.createIndex(DSL.name("idx_todo_list_created_by_user_id"), TodoList.TODO_LIST, arrayOf(TodoList.TODO_LIST.CREATED_BY_USER_ID), false)
+val IDX_TODO_TODO_LIST_ID: Index = Internal.createIndex(DSL.name("idx_todo_todo_list_id"), Todo.TODO, arrayOf(Todo.TODO.TODO_LIST_ID), false)

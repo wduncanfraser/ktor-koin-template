@@ -3,13 +3,17 @@ type: object
 description: A todo item.
 required:
 - id
+- todoListId
 - name
 - completed
+- createdBy
 - createdAt
 - updatedAt
 properties:
   id:
-    type: string
+    $ref: ./TodoId.yaml
+  todoListId:
+    $ref: ../todo-lists/TodoListId.yaml
   name:
     $ref: ./TodoName.yaml
   completed:
@@ -19,14 +23,19 @@ properties:
     type: string
     description: Date and time when the Todo was marked completed.
     format: date-time
+  createdBy:
+    type: string
+    description: The id of the user who created this todo item.
   createdAt:
     $ref: ../CreatedAt.yaml
   updatedAt:
     $ref: ../UpdatedAt.yaml
 example:
   id: e3c205bd-7293-4fe0-9da9-8279a0e54ab1
+  todoListId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
   name: Cook dinner
   completed: true
   completedAt: '2020-01-13T09:25:56Z'
+  createdBy: '123456789012345678'
   createdAt: '2019-08-24T14:15:22Z'
   updatedAt: '2020-01-13T09:25:56Z'

@@ -1,114 +1,60 @@
 package com.example.todo.api
 
+import com.example.authn.UserSession
 import com.example.core.api.exceptions.ProblemDetailsException
-import com.example.todo.api.mappers.TodoContractMapper
-import com.example.todo.api.mappers.TodoIdMapper
-import com.example.todo.services.TodoService
-import com.example.todo.services.TodoServiceError
 import com.example.generated.api.controllers.TodosController
 import com.example.generated.api.controllers.TypedApplicationCall
-import com.example.generated.api.models.CreateTodoRequestContract
 import com.example.generated.api.models.ListTodosResponseContract
-import com.example.generated.api.models.TodoResponseContract
-import com.example.generated.api.models.UpdateTodoRequestContract
-import com.example.authn.UserSession
+import com.example.todo.api.mappers.TodoContractMapper
+import com.example.todo.services.TodoService
+import com.example.todo.services.TodoServiceError
 import com.github.michaelbull.result.getOrThrow
 import com.github.michaelbull.result.map
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.principal
-import io.ktor.server.response.respond
 
 class TodoController(
     private val todoService: TodoService,
-): TodosController {
+) : TodosController {
+
     override suspend fun listTodos(
         pageSize: Int?,
         page: Int?,
         completed: Boolean?,
-        call: TypedApplicationCall<ListTodosResponseContract>
+        call: TypedApplicationCall<ListTodosResponseContract>,
     ) {
         val userId = call.principal<UserSession>()!!.userId
-        val pageSize = pageSize ?: DEFAULT_PAGE_SIZE
-        val page = page ?: 1
-        val result = todoService.listTodos(userId, pageSize, page, completed)
-            .getOrThrow(::mapErrorToException)
-        call.respondTyped(TodoContractMapper.toContract(result))
-    }
-
-    override suspend fun getTodo(
-        todoId: String,
-        call: TypedApplicationCall<TodoResponseContract>,
-    ) {
-        val userId = call.principal<UserSession>()!!.userId
-        val response = todoService.getTodo(userId, TodoIdMapper.toDomain(todoId))
+        val result = todoService.listAllTodos(userId, pageSize ?: DEFAULT_PAGE_SIZE, page ?: 1, completed)
             .map(TodoContractMapper::toContract)
             .getOrThrow(::mapErrorToException)
-        call.respondTyped(response)
-    }
-
-    override suspend fun createTodo(
-        createTodoRequest: CreateTodoRequestContract,
-        call: TypedApplicationCall<TodoResponseContract>
-    ) {
-        val userId = call.principal<UserSession>()!!.userId
-        val response = todoService.createTodo(userId, TodoContractMapper.toDomain(createTodoRequest))
-            .map(TodoContractMapper::toContract)
-            .getOrThrow(::mapErrorToException)
-
-        call.respond(HttpStatusCode.Created, response)
-    }
-
-    override suspend fun updateTodo(
-        todoId: String,
-        updateTodoRequest: UpdateTodoRequestContract,
-        call: TypedApplicationCall<TodoResponseContract>
-    ) {
-        val userId = call.principal<UserSession>()!!.userId
-        val response = todoService.updateTodo(userId, TodoContractMapper.toDomain(todoId, updateTodoRequest))
-            .map(TodoContractMapper::toContract)
-            .getOrThrow(::mapErrorToException)
-
-        call.respondTyped(response)
-    }
-
-    override suspend fun deleteTodo(todoId: String, call: ApplicationCall) {
-        val userId = call.principal<UserSession>()!!.userId
-        todoService.deleteTodo(
-            userId = userId,
-            id = TodoIdMapper.toDomain(todoId),
-        ).getOrThrow(::mapErrorToException)
-
-        call.respond(HttpStatusCode.NoContent)
+        call.respondTyped(result)
     }
 
     companion object {
         private const val DEFAULT_PAGE_SIZE = 20
 
-        private fun mapErrorToException(error: TodoServiceError): Throwable {
-            return when (error) {
-                is TodoServiceError.TodoNotFound -> ProblemDetailsException(
-                    type = "https://example.com/errors/not-found",
-                    statusCode = HttpStatusCode.NotFound,
-                    message = "Todo not found: todoId=${error.id}",
-                    cause = null,
-                )
+        private fun mapErrorToException(error: TodoServiceError): Throwable = when (error) {
+            is TodoServiceError.TodoNotFound -> ProblemDetailsException(
+                type = "https://example.com/errors/not-found",
+                statusCode = HttpStatusCode.NotFound,
+                message = "Todo not found: todoId=${error.id}",
+                cause = null,
+            )
 
-                is TodoServiceError.ValidationFailed -> ProblemDetailsException(
-                    type = "https://example.com/errors/unprocessable-entity",
-                    statusCode = HttpStatusCode.UnprocessableEntity,
-                    message = "Request validation failed",
-                    cause = null,
-                    errors = error.errors
-                        .groupBy { it.path.trimStart('.') }
-                        .mapValues { (_, errs) -> errs.map { it.message } },
-                )
+            is TodoServiceError.ValidationFailed -> ProblemDetailsException(
+                type = "https://example.com/errors/unprocessable-entity",
+                statusCode = HttpStatusCode.UnprocessableEntity,
+                message = "Request validation failed",
+                cause = null,
+                errors = error.errors
+                    .groupBy { it.path.trimStart('.') }
+                    .mapValues { (_, errs) -> errs.map { it.message } },
+            )
 
-                is TodoServiceError.UnhandledServiceError -> RuntimeException(
-                    "Unexpected exception",
-                    error.t,
-                )
-            }
+            is TodoServiceError.UnhandledServiceError -> RuntimeException(
+                "Unexpected exception",
+                error.t,
+            )
         }
     }
 }

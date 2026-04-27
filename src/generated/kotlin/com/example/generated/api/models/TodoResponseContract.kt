@@ -11,8 +11,16 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 public data class TodoResponseContract(
+  /**
+   * The unique identifier of the Todo list.
+   */
   @SerialName("id")
   public val id: String,
+  /**
+   * The unique identifier of the Todo.
+   */
+  @SerialName("todoListId")
+  public val todoListId: String,
   /**
    * The name of the Todo.
    */
@@ -28,6 +36,11 @@ public data class TodoResponseContract(
    */
   @SerialName("completedAt")
   public val completedAt: Instant? = null,
+  /**
+   * The id of the user who created this todo item.
+   */
+  @SerialName("createdBy")
+  public val createdBy: String,
   /**
    * Date and time which is set automatically when the resource is created.
    */

@@ -14,76 +14,87 @@ import kotlin.time.toKotlinInstant
 class TodoMapperTest : FunSpec({
 
     val fixedInstant: JavaInstant = JavaInstant.parse("2025-01-15T10:30:00Z")
+    val listId = UUID.randomUUID()
 
-    test("toDomain maps all fields from TodoRecord") {
-        val id = UUID.randomUUID()
-        val record = TodoRecord(
-            id = id,
-            name = "Buy groceries",
-            completedAt = null,
-            userId = "test-user",
-            createdAt = fixedInstant,
-            updatedAt = fixedInstant,
-        )
+    context("toDomain") {
+        test("maps all fields from TodoRecord") {
+            val id = UUID.randomUUID()
+            val record = TodoRecord(
+                id = id,
+                name = "Buy groceries",
+                completedAt = null,
+                todoListId = listId,
+                createdByUserId = "test-user",
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant,
+            )
 
-        val result = TodoMapper.toDomain(record)
+            val result = TodoMapper.toDomain(record)
 
-        assertSoftly(result) {
-            this.id shouldBe id
-            name shouldBe "Buy groceries"
-            completedAt shouldBe null
-            userId shouldBe "test-user"
-            createdAt shouldBe fixedInstant.toKotlinInstant()
-            updatedAt shouldBe fixedInstant.toKotlinInstant()
+            assertSoftly(result) {
+                this.id shouldBe id
+                name shouldBe "Buy groceries"
+                completedAt shouldBe null
+                todoListId shouldBe listId
+                createdByUserId shouldBe "test-user"
+                createdAt shouldBe fixedInstant.toKotlinInstant()
+                updatedAt shouldBe fixedInstant.toKotlinInstant()
+            }
+        }
+
+        test("maps completedAt when present") {
+            val completedAt = JavaInstant.parse("2025-01-16T12:00:00Z")
+            val record = TodoRecord(
+                id = UUID.randomUUID(),
+                name = "Done task",
+                completedAt = completedAt,
+                todoListId = listId,
+                createdByUserId = "test-user",
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant,
+            )
+
+            val result = TodoMapper.toDomain(record)
+
+            result.completedAt shouldBe completedAt.toKotlinInstant()
         }
     }
 
-    test("toDomain maps completedAt when present") {
-        val completedAt = JavaInstant.parse("2025-01-16T12:00:00Z")
-        val record = TodoRecord(
-            id = UUID.randomUUID(),
-            name = "Done task",
-            completedAt = completedAt,
-            userId = "test-user",
-            createdAt = fixedInstant,
-            updatedAt = fixedInstant,
-        )
+    context("toRecord") {
+        test("maps all fields from TodoForSave") {
+            val id = UUID.randomUUID()
+            val kotlinInstant: KotlinInstant = fixedInstant.toKotlinInstant()
+            val todo = TodoForSave(
+                id = id,
+                name = "Write tests",
+                completedAt = kotlinInstant,
+                todoListId = listId,
+                createdByUserId = "test-user",
+            )
 
-        val result = TodoMapper.toDomain(record)
+            val result = TodoMapper.toRecord(todo)
 
-        result.completedAt shouldBe completedAt.toKotlinInstant()
-    }
-
-    test("toRecord maps all fields from TodoForSave") {
-        val id = UUID.randomUUID()
-        val kotlinInstant: KotlinInstant = fixedInstant.toKotlinInstant()
-        val todo = TodoForSave(
-            id = id,
-            name = "Write tests",
-            completedAt = kotlinInstant,
-            userId = "test-user",
-        )
-
-        val result = TodoMapper.toRecord(todo)
-
-        assertSoftly(result) {
-            this.id shouldBe id
-            name shouldBe "Write tests"
-            completedAt shouldBe kotlinInstant.toJavaInstant()
-            userId shouldBe "test-user"
+            assertSoftly(result) {
+                this.id shouldBe id
+                name shouldBe "Write tests"
+                completedAt shouldBe kotlinInstant.toJavaInstant()
+                todoListId shouldBe listId
+                createdByUserId shouldBe "test-user"
+            }
         }
-    }
 
-    test("toRecord maps null completedAt") {
-        val todo = TodoForSave(
-            id = UUID.randomUUID(),
-            name = "Incomplete task",
-            completedAt = null,
-            userId = "test-user",
-        )
+        test("maps null completedAt") {
+            val todo = TodoForSave(
+                id = UUID.randomUUID(),
+                name = "Incomplete task",
+                completedAt = null,
+                todoListId = listId,
+                createdByUserId = "test-user",
+            )
 
-        val result = TodoMapper.toRecord(todo)
+            val result = TodoMapper.toRecord(todo)
 
-        result.completedAt shouldBe null
+            result.completedAt shouldBe null
+        }
     }
 })

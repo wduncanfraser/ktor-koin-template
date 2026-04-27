@@ -311,6 +311,9 @@ exceptions:
     allowedExceptionNameRegex: '_|(ignore|expected).*'
   TooGenericExceptionThrown:
     active: true
+    excludes:
+    - '**/test/**'
+    - '**/integrationTest/**'
     exceptionNames:
     - 'Error'
     - 'Exception'

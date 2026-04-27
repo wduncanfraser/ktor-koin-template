@@ -12,8 +12,14 @@ servers:
 paths:
   /todos:
     $ref: paths/todos.yaml
-  /todos/{todo-id}:
-    $ref: paths/todos_{todo-id}.yaml
+  /todo-lists:
+    $ref: paths/todo-lists.yaml
+  /todo-lists/{list-id}:
+    $ref: paths/todo-lists_{list-id}.yaml
+  /todo-lists/{list-id}/todos:
+    $ref: paths/todo-lists_{list-id}_todos.yaml
+  /todo-lists/{list-id}/todos/{todo-id}:
+    $ref: paths/todo-lists_{list-id}_todos_{todo-id}.yaml
 components:
   securitySchemes:
     SessionCookie:

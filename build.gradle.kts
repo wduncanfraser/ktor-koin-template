@@ -129,6 +129,11 @@ detekt {
     autoCorrect = project.findProperty("autoCorrect") as String? == "true"
     buildUponDefaultConfig = false
     config.setFrom("$projectDir/config/detekt.yml")
+    source.setFrom(
+        "src/main/kotlin",
+        "src/test/kotlin",
+        "src/integrationTest/kotlin",
+    )
 }
 
 kover {
@@ -172,7 +177,7 @@ tasks {
 
     val deleteGeneratedApi by registering(Delete::class) {
         group = "Fabrikt"
-        delete("$generationDir/kotlin/com/example/generate/api")
+        delete("$generationDir/kotlin/com/example/generated/api")
     }
 
     val generateApi by registering(JavaExec::class) {

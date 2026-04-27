@@ -11,7 +11,8 @@ data class Todo(
     val id: UUID,
     val name: String,
     val completedAt: Instant?,
-    val userId: String,
+    val todoListId: UUID,
+    val createdByUserId: String,
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {
@@ -19,7 +20,8 @@ data class Todo(
         id = id,
         name = name,
         completedAt = completedAt,
-        userId = userId,
+        todoListId = todoListId,
+        createdByUserId = createdByUserId,
     )
 }
 
@@ -29,11 +31,12 @@ data class Todo(
 data class TodoForCreate(
     val name: String,
 ) {
-    fun toPersistenceModel(userId: String) = TodoForSave(
+    fun toPersistenceModel(todoListId: UUID, createdByUserId: String) = TodoForSave(
         id = UUID.randomUUID(),
         name = name,
         completedAt = null,
-        userId = userId,
+        todoListId = todoListId,
+        createdByUserId = createdByUserId,
     )
 }
 
@@ -53,7 +56,8 @@ data class TodoForSave(
     val id: UUID,
     var name: String,
     var completedAt: Instant?,
-    val userId: String,
+    val todoListId: UUID,
+    val createdByUserId: String,
 ) {
     fun update(update: TodoForUpdate) {
         name = update.name

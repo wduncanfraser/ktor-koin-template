@@ -2,6 +2,7 @@ package com.example.config
 
 import com.example.authn.authNModule
 import com.example.todo.todoModule
+import com.example.todolist.todoListModule
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import org.koin.ktor.plugin.Koin
@@ -16,7 +17,8 @@ fun Application.configureKoin() {
             authNModule,
             databaseModule(),
             redisModule(),
-            todoModule
+            todoModule,
+            todoListModule,
         )
     }
 }

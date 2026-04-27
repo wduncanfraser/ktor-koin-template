@@ -11,7 +11,7 @@ security:
 paths:
   /todos:
     get:
-      summary: List all todos
+      summary: List all todos for the authenticated user
       operationId: listTodos
       tags:
         - Todos
@@ -28,11 +28,152 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         default:
           $ref: '#/components/responses/UnexpectedError'
-    post:
-      summary: Create a todo
-      operationId: createTodo
+  /todo-lists:
+    get:
+      summary: List all todo lists
+      operationId: listTodoLists
       tags:
-        - Todos
+        - TodoLists
+      parameters:
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListTodoListsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    post:
+      summary: Create a todo list
+      operationId: createTodoList
+      tags:
+        - TodoLists
+      requestBody:
+        required: true
+        description: The request body for creating a Todo list.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoListRequest'
+      responses:
+        '201':
+          description: Todo list was created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /todo-lists/{list-id}:
+    get:
+      summary: Get a todo list
+      operationId: getTodoList
+      tags:
+        - TodoLists
+      parameters:
+        - $ref: '#/components/parameters/TodoListId'
+      responses:
+        '200':
+          description: Todo list was retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    put:
+      summary: Update a todo list
+      operationId: updateTodoList
+      tags:
+        - TodoLists
+      parameters:
+        - $ref: '#/components/parameters/TodoListId'
+      requestBody:
+        required: true
+        description: The request body for updating a Todo list.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTodoListRequest'
+      responses:
+        '200':
+          description: Todo list was updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    delete:
+      summary: Delete a todo list
+      operationId: deleteTodoList
+      tags:
+        - TodoLists
+      parameters:
+        - $ref: '#/components/parameters/TodoListId'
+      responses:
+        '204':
+          description: Todo list was deleted successfully.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+  /todo-lists/{list-id}/todos:
+    get:
+      summary: List all todos in a todo list
+      operationId: listTodosInList
+      tags:
+        - TodoLists
+      parameters:
+        - $ref: '#/components/parameters/TodoListId'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/TodoCompleted'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListTodosResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+    post:
+      summary: Create a todo in a todo list
+      operationId: createTodoInList
+      tags:
+        - TodoLists
+      parameters:
+        - $ref: '#/components/parameters/TodoListId'
       requestBody:
         required: true
         description: The request body for creating a Todo.
@@ -51,17 +192,20 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         default:
           $ref: '#/components/responses/UnexpectedError'
-  /todos/{todo-id}:
+  /todo-lists/{list-id}/todos/{todo-id}:
     get:
-      summary: Get a todo
-      operationId: getTodo
+      summary: Get a todo in a todo list
+      operationId: getTodoInList
       tags:
-        - Todos
+        - TodoLists
       parameters:
+        - $ref: '#/components/parameters/TodoListId'
         - $ref: '#/components/parameters/TodoId'
       responses:
         '200':
@@ -79,11 +223,12 @@ paths:
         default:
           $ref: '#/components/responses/UnexpectedError'
     put:
-      summary: Update a todo
-      operationId: updateTodo
+      summary: Update a todo in a todo list
+      operationId: updateTodoInList
       tags:
-        - Todos
+        - TodoLists
       parameters:
+        - $ref: '#/components/parameters/TodoListId'
         - $ref: '#/components/parameters/TodoId'
       requestBody:
         required: true
@@ -110,11 +255,12 @@ paths:
         default:
           $ref: '#/components/responses/UnexpectedError'
     delete:
-      summary: Delete a todo
-      operationId: deleteTodo
+      summary: Delete a todo in a todo list
+      operationId: deleteTodoInList
       tags:
-        - Todos
+        - TodoLists
       parameters:
+        - $ref: '#/components/parameters/TodoListId'
         - $ref: '#/components/parameters/TodoId'
       responses:
         '204':
@@ -163,13 +309,20 @@ components:
       schema:
         type: boolean
       description: Filter for todos to only list completed vs incomplete records.
+    TodoListId:
+      name: list-id
+      in: path
+      description: The unique identifier of the Todo list.
+      required: true
+      schema:
+        $ref: '#/components/schemas/TodoListId'
     TodoId:
       name: todo-id
       in: path
       description: The unique identifier of the Todo.
       required: true
       schema:
-        type: string
+        $ref: '#/components/schemas/TodoId'
   schemas:
     ProblemDetails:
       type: object
@@ -205,6 +358,14 @@ components:
             type: array
             items:
               type: string
+    TodoId:
+      type: string
+      description: The unique identifier of the Todo list.
+      example: 00000000-0000-0000-0000-000000000000
+    TodoListId:
+      type: string
+      description: The unique identifier of the Todo.
+      example: 00000000-0000-0000-0000-000000000000
     TodoName:
       type: string
       description: The name of the Todo.
@@ -225,13 +386,17 @@ components:
       description: A todo item.
       required:
         - id
+        - todoListId
         - name
         - completed
+        - createdBy
         - createdAt
         - updatedAt
       properties:
         id:
-          type: string
+          $ref: '#/components/schemas/TodoId'
+        todoListId:
+          $ref: '#/components/schemas/TodoListId'
         name:
           $ref: '#/components/schemas/TodoName'
         completed:
@@ -241,15 +406,20 @@ components:
           type: string
           description: Date and time when the Todo was marked completed.
           format: date-time
+        createdBy:
+          type: string
+          description: The id of the user who created this todo item.
         createdAt:
           $ref: '#/components/schemas/CreatedAt'
         updatedAt:
           $ref: '#/components/schemas/UpdatedAt'
       example:
         id: e3c205bd-7293-4fe0-9da9-8279a0e54ab1
+        todoListId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
         name: Cook dinner
         completed: true
         completedAt: '2020-01-13T09:25:56Z'
+        createdBy: '123456789012345678'
         createdAt: '2019-08-24T14:15:22Z'
         updatedAt: '2020-01-13T09:25:56Z'
     PaginationMetadata:
@@ -273,6 +443,64 @@ components:
           type: integer
           example: 1000
       description: Paginated Results with metadata describing the page
+    TodoListName:
+      type: string
+      description: The name of the Todo list.
+      example: Shopping
+      minLength: 1
+    TodoListDescription:
+      type: string
+      description: An optional description of the Todo list.
+      example: Weekly grocery shopping items
+      nullable: true
+    TodoListResponse:
+      type: object
+      description: A todo list.
+      required:
+        - id
+        - name
+        - createdBy
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/TodoListId'
+        name:
+          $ref: '#/components/schemas/TodoListName'
+        description:
+          $ref: '#/components/schemas/TodoListDescription'
+        createdBy:
+          type: string
+          description: The id of the user who created this todo list.
+        createdAt:
+          $ref: '#/components/schemas/CreatedAt'
+        updatedAt:
+          $ref: '#/components/schemas/UpdatedAt'
+      example:
+        id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        name: Shopping
+        description: Weekly grocery shopping items
+        createdBy: '123456789012345678'
+        createdAt: '2019-08-24T14:15:22Z'
+        updatedAt: '2020-01-13T09:25:56Z'
+    CreateTodoListRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          $ref: '#/components/schemas/TodoListName'
+        description:
+          $ref: '#/components/schemas/TodoListDescription'
+    UpdateTodoListRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          $ref: '#/components/schemas/TodoListName'
+        description:
+          $ref: '#/components/schemas/TodoListDescription'
     CreateTodoRequest:
       type: object
       required:
@@ -325,6 +553,21 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
+    ListTodoListsResponse:
+      description: The list of Todo lists with pagination metadata.
+      content:
+        application/json:
+          schema:
+            required:
+              - data
+              - pagination
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TodoListResponse'
+              pagination:
+                $ref: '#/components/schemas/PaginationMetadata'
     UnprocessableEntity:
       description: Unprocessable Entity.
       content:

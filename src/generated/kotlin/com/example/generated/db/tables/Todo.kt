@@ -5,8 +5,11 @@ package com.example.generated.db.tables
 
 
 import com.example.generated.db.Public
-import com.example.generated.db.indexes.IDX_TODO_USER_ID
+import com.example.generated.db.indexes.IDX_TODO_CREATED_BY_USER_ID
+import com.example.generated.db.indexes.IDX_TODO_TODO_LIST_ID
 import com.example.generated.db.keys.TODO_PKEY
+import com.example.generated.db.keys.TODO__FK_TODO_LIST
+import com.example.generated.db.tables.TodoList.TodoListPath
 import com.example.generated.db.tables.records.TodoRecord
 
 import java.time.Instant
@@ -21,6 +24,7 @@ import org.jooq.ForeignKey
 import org.jooq.Index
 import org.jooq.InverseForeignKey
 import org.jooq.Name
+import org.jooq.Path
 import org.jooq.PlainSQL
 import org.jooq.QueryPart
 import org.jooq.Record
@@ -106,10 +110,16 @@ open class Todo(
     val UPDATED_AT: TableField<TodoRecord, Instant?> = createField(DSL.name("updated_at"), SQLDataType.INSTANT.nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.INSTANT)), this, "The date / time that this record was last updated.")
 
     /**
-     * The column <code>public.todo.user_id</code>. The id of the user who owns
-     * this todo item.
+     * The column <code>public.todo.created_by_user_id</code>. The id of the
+     * user who created this todo item.
      */
-    val USER_ID: TableField<TodoRecord, String?> = createField(DSL.name("user_id"), SQLDataType.CLOB.nullable(false), this, "The id of the user who owns this todo item.")
+    val CREATED_BY_USER_ID: TableField<TodoRecord, String?> = createField(DSL.name("created_by_user_id"), SQLDataType.CLOB.nullable(false), this, "The id of the user who created this todo item.")
+
+    /**
+     * The column <code>public.todo.todo_list_id</code>. The id of the todo list
+     * this item belongs to.
+     */
+    val TODO_LIST_ID: TableField<TodoRecord, UUID?> = createField(DSL.name("todo_list_id"), SQLDataType.UUID.nullable(false), this, "The id of the todo list this item belongs to.")
 
     private constructor(alias: Name, aliased: Table<TodoRecord>?): this(alias, null, null, null, aliased, null, null)
     private constructor(alias: Name, aliased: Table<TodoRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, null, aliased, parameters, null)
@@ -129,9 +139,29 @@ open class Todo(
      * Create a <code>public.todo</code> table reference
      */
     constructor(): this(DSL.name("todo"), null)
+
+    constructor(path: Table<out Record>, childPath: ForeignKey<out Record, TodoRecord>?, parentPath: InverseForeignKey<out Record, TodoRecord>?): this(Internal.createPathAlias(path, childPath, parentPath), path, childPath, parentPath, TODO, null, null)
+
+    /**
+     * A subtype implementing {@link Path} for simplified path-based joins.
+     */
+    open class TodoPath : Todo, Path<TodoRecord> {
+        constructor(path: Table<out Record>, childPath: ForeignKey<out Record, TodoRecord>?, parentPath: InverseForeignKey<out Record, TodoRecord>?): super(path, childPath, parentPath)
+        private constructor(alias: Name, aliased: Table<TodoRecord>): super(alias, aliased)
+        override fun `as`(alias: String): TodoPath = TodoPath(DSL.name(alias), this)
+        override fun `as`(alias: Name): TodoPath = TodoPath(alias, this)
+        override fun `as`(alias: Table<*>): TodoPath = TodoPath(alias.qualifiedName, this)
+    }
     override fun getSchema(): Schema? = if (aliased()) null else Public.PUBLIC
-    override fun getIndexes(): List<Index> = listOf(IDX_TODO_USER_ID)
+    override fun getIndexes(): List<Index> = listOf(IDX_TODO_CREATED_BY_USER_ID, IDX_TODO_TODO_LIST_ID)
     override fun getPrimaryKey(): UniqueKey<TodoRecord> = TODO_PKEY
+    override fun getReferences(): List<ForeignKey<TodoRecord, *>> = listOf(TODO__FK_TODO_LIST)
+
+    /**
+     * Get the implicit join path to the <code>public.todo_list</code> table.
+     */
+    fun todoList(): TodoListPath = todoList
+    val todoList: TodoListPath by lazy { TodoListPath(this, TODO__FK_TODO_LIST, null) }
     override fun `as`(alias: String): Todo = Todo(DSL.name(alias), this)
     override fun `as`(alias: Name): Todo = Todo(alias, this)
     override fun `as`(alias: Table<*>): Todo = Todo(alias.qualifiedName, this)

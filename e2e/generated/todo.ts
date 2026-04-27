@@ -11,6 +11,11 @@ import http from "k6/http";
 import type { Params, Response } from "k6/http";
 
 /**
+ * Field-level validation errors, keyed by field path with a list of messages per field.
+ */
+export type ProblemDetailsErrors = { [key: string]: string[] };
+
+/**
  * RFC 9457 compliant error response
  */
 export interface ProblemDetails {
@@ -24,41 +29,19 @@ export interface ProblemDetails {
   detail: string;
   /** URI reference identifying the specific occurrence of the problem. */
   instance: string;
+  /** Field-level validation errors, keyed by field path with a list of messages per field. */
+  errors?: ProblemDetailsErrors;
 }
 
 /**
- * Paginated Results with metadata describing the page
+ * The unique identifier of the Todo list.
  */
-export interface PaginationMetadata {
-  page: number;
-  pageSize: number;
-  totalPages: number;
-  totalRows: number;
-}
+export type TodoId = string;
 
 /**
- * A todo item.
+ * The unique identifier of the Todo.
  */
-export interface TodoResponse {
-  id: string;
-  name: TodoName;
-  /** Is the Todo completed. */
-  completed: boolean;
-  /** Date and time when the Todo was marked completed. */
-  completedAt?: string;
-  createdAt: CreatedAt;
-  updatedAt: UpdatedAt;
-}
-
-export interface CreateTodoRequest {
-  name: TodoName;
-}
-
-export interface UpdateTodoRequest {
-  name: TodoName;
-  /** Is the Todo completed. */
-  completed: boolean;
-}
+export type TodoListId = string;
 
 /**
  * The name of the Todo.
@@ -77,24 +60,111 @@ export type CreatedAt = string;
 export type UpdatedAt = string;
 
 /**
- * Bad Request.
+ * A todo item.
  */
-export type BadRequestResponse = ProblemDetails;
+export interface TodoResponse {
+  id: TodoId;
+  todoListId: TodoListId;
+  name: TodoName;
+  /** Is the Todo completed. */
+  completed: boolean;
+  /** Date and time when the Todo was marked completed. */
+  completedAt?: string;
+  /** The id of the user who created this todo item. */
+  createdBy: string;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
+}
+
+/**
+ * Paginated Results with metadata describing the page
+ */
+export interface PaginationMetadata {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalRows: number;
+}
+
+/**
+ * The name of the Todo list.
+ * @minLength 1
+ */
+export type TodoListName = string;
+
+/**
+ * An optional description of the Todo list.
+ * @nullable
+ */
+export type TodoListDescription = string | null;
+
+/**
+ * A todo list.
+ */
+export interface TodoListResponse {
+  id: TodoListId;
+  name: TodoListName;
+  description?: TodoListDescription;
+  /** The id of the user who created this todo list. */
+  createdBy: string;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
+}
+
+export interface CreateTodoListRequest {
+  name: TodoListName;
+  description?: TodoListDescription;
+}
+
+export interface UpdateTodoListRequest {
+  name: TodoListName;
+  description?: TodoListDescription;
+}
+
+export interface CreateTodoRequest {
+  name: TodoName;
+}
+
+export interface UpdateTodoRequest {
+  name: TodoName;
+  /** Is the Todo completed. */
+  completed: boolean;
+}
 
 /**
  * An unexpected error occurred when processing the request.
  */
 export type UnexpectedErrorResponse = ProblemDetails;
 
-/**
- * The specified resource was not found
- */
-export type NotFoundResponse = ProblemDetails;
-
 export type ListTodosResponseResponse = {
   data: TodoResponse[];
   pagination: PaginationMetadata;
 };
+
+/**
+ * Bad Request.
+ */
+export type BadRequestResponse = ProblemDetails;
+
+/**
+ * Unauthorized. The request requires authentication.
+ */
+export type UnauthorizedResponse = ProblemDetails;
+
+export type ListTodoListsResponseResponse = {
+  data: TodoListResponse[];
+  pagination: PaginationMetadata;
+};
+
+/**
+ * Unprocessable Entity.
+ */
+export type UnprocessableEntityResponse = ProblemDetails;
+
+/**
+ * The specified resource was not found
+ */
+export type NotFoundResponse = ProblemDetails;
 
 /**
  * The number of items to return in a single request.
@@ -109,7 +179,7 @@ export type PageNumberParameter = number;
 /**
  * Filter for todos to only list completed vs incomplete records.
  */
-export type CompletedParameter = boolean;
+export type TodoCompletedParameter = boolean;
 
 export type ListTodosParams = {
   /**
@@ -126,7 +196,39 @@ export type ListTodosParams = {
   /**
    * Filter for todos to only list completed vs incomplete records.
    */
-  completed?: CompletedParameter;
+  completed?: TodoCompletedParameter;
+};
+
+export type ListTodoListsParams = {
+  /**
+   * The number of items to return in a single request.
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: PageSizeParameter;
+  /**
+   * The page number of results to return.
+   * @minimum 1
+   */
+  page?: PageNumberParameter;
+};
+
+export type ListTodosInListParams = {
+  /**
+   * The number of items to return in a single request.
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: PageSizeParameter;
+  /**
+   * The page number of results to return.
+   * @minimum 1
+   */
+  page?: PageNumberParameter;
+  /**
+   * Filter for todos to only list completed vs incomplete records.
+   */
+  completed?: TodoCompletedParameter;
 };
 
 /**
@@ -146,7 +248,7 @@ export class TodoClient {
   }
 
   /**
-   * @summary List all todos
+   * @summary List all todos for the authenticated user
    */
   listTodos(
     params?: ListTodosParams,
@@ -181,16 +283,237 @@ export class TodoClient {
   }
 
   /**
-   * @summary Create a todo
+   * @summary List all todo lists
    */
-  createTodo(
+  listTodoLists(
+    params?: ListTodoListsParams,
+    requestParameters?: Params,
+  ): {
+    response: Response;
+    data: ListTodoListsResponseResponse;
+  } {
+    const url = new URL(
+      this.cleanBaseUrl +
+        `/todo-lists` +
+        `?${new URLSearchParams(params).toString()}`,
+    );
+    const mergedRequestParameters = this._mergeRequestParameters(
+      requestParameters || {},
+      this.commonRequestParameters,
+    );
+    const response = http.request("GET", url.toString(), undefined, {
+      ...mergedRequestParameters,
+    });
+    let data;
+
+    try {
+      data = response.json();
+    } catch {
+      data = response.body;
+    }
+    return {
+      response,
+      data,
+    };
+  }
+
+  /**
+   * @summary Create a todo list
+   */
+  createTodoList(
+    createTodoListRequest: CreateTodoListRequest,
+    requestParameters?: Params,
+  ): {
+    response: Response;
+    data: TodoListResponse;
+  } {
+    const url = new URL(this.cleanBaseUrl + `/todo-lists`);
+    const mergedRequestParameters = this._mergeRequestParameters(
+      requestParameters || {},
+      this.commonRequestParameters,
+    );
+    const response = http.request(
+      "POST",
+      url.toString(),
+      JSON.stringify(createTodoListRequest),
+      {
+        ...mergedRequestParameters,
+        headers: {
+          ...mergedRequestParameters?.headers,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    let data;
+
+    try {
+      data = response.json();
+    } catch {
+      data = response.body;
+    }
+    return {
+      response,
+      data,
+    };
+  }
+
+  /**
+   * @summary Get a todo list
+   */
+  getTodoList(
+    listId: string,
+    requestParameters?: Params,
+  ): {
+    response: Response;
+    data: TodoListResponse;
+  } {
+    const url = new URL(this.cleanBaseUrl + `/todo-lists/${listId}`);
+    const mergedRequestParameters = this._mergeRequestParameters(
+      requestParameters || {},
+      this.commonRequestParameters,
+    );
+    const response = http.request(
+      "GET",
+      url.toString(),
+      undefined,
+      mergedRequestParameters,
+    );
+    let data;
+
+    try {
+      data = response.json();
+    } catch {
+      data = response.body;
+    }
+    return {
+      response,
+      data,
+    };
+  }
+
+  /**
+   * @summary Update a todo list
+   */
+  updateTodoList(
+    listId: string,
+    updateTodoListRequest: UpdateTodoListRequest,
+    requestParameters?: Params,
+  ): {
+    response: Response;
+    data: TodoListResponse;
+  } {
+    const url = new URL(this.cleanBaseUrl + `/todo-lists/${listId}`);
+    const mergedRequestParameters = this._mergeRequestParameters(
+      requestParameters || {},
+      this.commonRequestParameters,
+    );
+    const response = http.request(
+      "PUT",
+      url.toString(),
+      JSON.stringify(updateTodoListRequest),
+      {
+        ...mergedRequestParameters,
+        headers: {
+          ...mergedRequestParameters?.headers,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    let data;
+
+    try {
+      data = response.json();
+    } catch {
+      data = response.body;
+    }
+    return {
+      response,
+      data,
+    };
+  }
+
+  /**
+   * @summary Delete a todo list
+   */
+  deleteTodoList(
+    listId: string,
+    requestParameters?: Params,
+  ): {
+    response: Response;
+    data: void;
+  } {
+    const url = new URL(this.cleanBaseUrl + `/todo-lists/${listId}`);
+    const mergedRequestParameters = this._mergeRequestParameters(
+      requestParameters || {},
+      this.commonRequestParameters,
+    );
+    const response = http.request(
+      "DELETE",
+      url.toString(),
+      undefined,
+      mergedRequestParameters,
+    );
+    let data;
+
+    try {
+      data = response.json();
+    } catch {
+      data = response.body;
+    }
+    return {
+      response,
+      data,
+    };
+  }
+
+  /**
+   * @summary List all todos in a todo list
+   */
+  listTodosInList(
+    listId: string,
+    params?: ListTodosInListParams,
+    requestParameters?: Params,
+  ): {
+    response: Response;
+    data: ListTodosResponseResponse;
+  } {
+    const url = new URL(
+      this.cleanBaseUrl +
+        `/todo-lists/${listId}/todos` +
+        `?${new URLSearchParams(params).toString()}`,
+    );
+    const mergedRequestParameters = this._mergeRequestParameters(
+      requestParameters || {},
+      this.commonRequestParameters,
+    );
+    const response = http.request("GET", url.toString(), undefined, {
+      ...mergedRequestParameters,
+    });
+    let data;
+
+    try {
+      data = response.json();
+    } catch {
+      data = response.body;
+    }
+    return {
+      response,
+      data,
+    };
+  }
+
+  /**
+   * @summary Create a todo in a todo list
+   */
+  createTodoInList(
+    listId: string,
     createTodoRequest: CreateTodoRequest,
     requestParameters?: Params,
   ): {
     response: Response;
     data: TodoResponse;
   } {
-    const url = new URL(this.cleanBaseUrl + `/todos`);
+    const url = new URL(this.cleanBaseUrl + `/todo-lists/${listId}/todos`);
     const mergedRequestParameters = this._mergeRequestParameters(
       requestParameters || {},
       this.commonRequestParameters,
@@ -221,16 +544,19 @@ export class TodoClient {
   }
 
   /**
-   * @summary Get a todo
+   * @summary Get a todo in a todo list
    */
-  getTodo(
+  getTodoInList(
+    listId: string,
     todoId: string,
     requestParameters?: Params,
   ): {
     response: Response;
     data: TodoResponse;
   } {
-    const url = new URL(this.cleanBaseUrl + `/todos/${todoId}`);
+    const url = new URL(
+      this.cleanBaseUrl + `/todo-lists/${listId}/todos/${todoId}`,
+    );
     const mergedRequestParameters = this._mergeRequestParameters(
       requestParameters || {},
       this.commonRequestParameters,
@@ -255,9 +581,10 @@ export class TodoClient {
   }
 
   /**
-   * @summary Update a todo
+   * @summary Update a todo in a todo list
    */
-  updateTodo(
+  updateTodoInList(
+    listId: string,
     todoId: string,
     updateTodoRequest: UpdateTodoRequest,
     requestParameters?: Params,
@@ -265,7 +592,9 @@ export class TodoClient {
     response: Response;
     data: TodoResponse;
   } {
-    const url = new URL(this.cleanBaseUrl + `/todos/${todoId}`);
+    const url = new URL(
+      this.cleanBaseUrl + `/todo-lists/${listId}/todos/${todoId}`,
+    );
     const mergedRequestParameters = this._mergeRequestParameters(
       requestParameters || {},
       this.commonRequestParameters,
@@ -296,16 +625,19 @@ export class TodoClient {
   }
 
   /**
-   * @summary Delete a todo
+   * @summary Delete a todo in a todo list
    */
-  deleteTodo(
+  deleteTodoInList(
+    listId: string,
     todoId: string,
     requestParameters?: Params,
   ): {
     response: Response;
     data: void;
   } {
-    const url = new URL(this.cleanBaseUrl + `/todos/${todoId}`);
+    const url = new URL(
+      this.cleanBaseUrl + `/todo-lists/${listId}/todos/${todoId}`,
+    );
     const mergedRequestParameters = this._mergeRequestParameters(
       requestParameters || {},
       this.commonRequestParameters,

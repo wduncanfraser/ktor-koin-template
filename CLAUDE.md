@@ -28,7 +28,7 @@ Integration tests use Testcontainers (PostgreSQL + Valkey + dbmate for migration
 docker compose up db valkey dbmate
 
 # Run the app
-./gradlew runFix db-codegen, so it uses init-db.sh
+./gradlew run
 ```
 
 Or run the full stack with `docker compose up`. App starts on `http://localhost:8080`.
@@ -42,23 +42,25 @@ Or run the full stack with `docker compose up`. App starts on `http://localhost:
 - **API layer**: The OpenAPI source lives in `contracts/todo/` as a multi-file spec. `src/main/resources/openapi/todo.yaml` is the committed bundle — do not edit it directly. After changing contract source files, run `./contracts/build.sh` to rebundle, then `./gradlew generateApi` to regenerate Kotlin code. Generated models use `Contract` suffix.
 - **Database layer**: jOOQ generates table/record classes from a live PostgreSQL schema. Run `./gradlew jooqCodegen` (requires running DB at localhost:5432).
 
-### Layered Architecture (per feature module, e.g. `todo/`)
+### Layered Architecture (per feature module, e.g. `todo/`, `todolist/`)
 
-1. **Controller** (`api/TodoController.kt`) — Implements generated Fabrikt controller interface. Maps between API contracts and domain types. Converts service errors to `ProblemDetailsException` (RFC 9457 Problem Details).
-2. **Service** (`services/TodoService.kt`) — Business logic. Uses `kotlin-result` (`Result<T, ServiceError>`) for typed error handling. Manages transactions via `resultTransactionCoroutine`.
-3. **Repository** (`repository/TodoRepository.kt`) — jOOQ queries returning `RepositoryResult<T>`. Uses coroutine-based async execution via R2DBC.
+1. **Controller** (`api/TodoListController.kt`) — Implements generated Fabrikt controller interface. Maps between API contracts and domain types. Converts service errors to `ProblemDetailsException` (RFC 9457 Problem Details).
+2. **Service** (`services/TodoListService.kt`) — Business logic. Uses `kotlin-result` (`Result<T, ServiceError>`) for typed error handling. Manages transactions via `resultTransactionCoroutine`.
+3. **Repository** (`repository/TodoListRepository.kt`) — jOOQ queries returning `RepositoryResult<T>`. Uses coroutine-based async execution via R2DBC.
 4. **Mappers** — Separate mapper objects for contract↔domain (`api/mappers/`) and domain↔record (`repository/mappers/`).
 
 ### Key Patterns
 
-- **Result types everywhere**: Repository returns `RepositoryResult<T>`, service returns `TodoServiceResult<T>`. Errors are mapped between layers (repository errors → service errors → HTTP exceptions). Uses `kotlin-result` library, not stdlib.
+- **Result types everywhere**: Repository returns `RepositoryResult<T>`, service returns a module-specific result type (e.g. `TodoListServiceResult<T>`). Errors are mapped between layers (repository errors → service errors → HTTP exceptions). Uses `kotlin-result` library, not stdlib.
 - **`resultTransactionCoroutine`** (`TransactionExtensions.kt`): Custom extension that wraps jOOQ's `transactionCoroutine` to automatically rollback on `Result` failure.
 - **Repository helpers** (`core/repository/RepositoryErrorHandling.kt`): `runWrappingError` wraps jOOQ exceptions into `RepositoryError`, `mapExpectingOne` validates row counts, `toNotFoundIfNull` converts nulls, `toNullIfNotFound` and `ignoreNotFound` suppress not-found errors.
-- **Koin modules**: Each feature defines a Koin `module` (e.g. `todoModule`). All modules are assembled in `config/Koin.kt`. Infrastructure modules (database, redis, monitoring) are in `config/`.
+- **Pagination** (`core/repository/PaginationUtil.kt`): Shared helpers `calculateTotalPages` and `calculateOffset` used by all paginated repository queries.
+- **Validation** (`core/validation/CommonFieldRules.kt`): Shared konform field rules (e.g. `itemName()`) reused across feature modules. Module-specific rules live in `<module>/validation/`.
+- **Koin modules**: Each feature defines a Koin `module` (e.g. `todoModule`, `todoListModule`). All modules are assembled in `config/Koin.kt`. Infrastructure modules (database, redis, monitoring) are in `config/`.
 
 ### Testing
 
-- **Unit tests** (`src/test/`): Kotest `FunSpec` style. No special setup needed.
+- **Unit tests** (`src/test/`): Kotest `FunSpec` style. No special setup needed. Detekt runs on test sources as well as main.
 - **Integration tests** (`src/integrationTest/`): Use Ktor's `testApplication` with a custom `integrationTestModule` that wires up Testcontainers (PostgreSQL, Valkey) and runs dbmate migrations. `IntegrationTestBase` provides helpers for creating authenticated test clients with injected sessions. Each test truncates tables in `beforeEach`.
 
 ### Database Migrations

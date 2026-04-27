@@ -1,0 +1,53 @@
+---
+get:
+  summary: List all todos in a todo list
+  operationId: listTodosInList
+  tags:
+  - TodoLists
+  parameters:
+  - $ref: ../components/parameters/todo-lists/TodoListId.yaml
+  - $ref: ../components/parameters/PageSize.yaml
+  - $ref: ../components/parameters/PageNumber.yaml
+  - $ref: ../components/parameters/todos/TodoCompleted.yaml
+  responses:
+    '200':
+      $ref: ../components/responses/todos/ListTodosResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    default:
+      $ref: ../components/responses/UnexpectedError.yaml
+post:
+  summary: Create a todo in a todo list
+  operationId: createTodoInList
+  tags:
+  - TodoLists
+  parameters:
+  - $ref: ../components/parameters/todo-lists/TodoListId.yaml
+  requestBody:
+    required: true
+    description: The request body for creating a Todo.
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/todos/CreateTodoRequest.yaml
+  responses:
+    '201':
+      description: Todo was created successfully.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/todos/TodoResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    default:
+      $ref: ../components/responses/UnexpectedError.yaml

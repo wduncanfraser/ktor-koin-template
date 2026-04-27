@@ -1,8 +1,8 @@
 package com.example
 
 import com.example.core.repository.RepositoryError
-import com.example.todo.domain.TodoForSave
-import com.example.todo.repository.TodoRepository
+import com.example.todolist.domain.TodoListForSave
+import com.example.todolist.repository.TodoListRepository
 import com.github.michaelbull.result.Err
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -13,11 +13,19 @@ import java.util.UUID
 class TransactionExtensionsIntegrationTest : IntegrationTestBase({
     test("resultTransactionCoroutine rolls back inserts when Err is returned") {
         val ctx = application.get<DSLContext>()
-        val repository = application.get<TodoRepository>()
+        val repository = application.get<TodoListRepository>()
         val id = UUID.randomUUID()
 
         val result = ctx.resultTransactionCoroutine { c ->
-            repository.upsert(c, TodoForSave(id = id, name = "Rollback test", completedAt = null, userId = "test-user"))
+            repository.upsert(
+                c = c,
+                todoList = TodoListForSave(
+                    id = id,
+                    name = "Rollback test",
+                    description = null,
+                    createdByUserId = "test-user",
+                ),
+            )
             Err(RepositoryError.RecordNotFound)
         }
 
@@ -29,13 +37,15 @@ class TransactionExtensionsIntegrationTest : IntegrationTestBase({
 
     test("resultTransactionCoroutine rolls back inserts when an exception is thrown") {
         val ctx = application.get<DSLContext>()
-        val repository = application.get<TodoRepository>()
+        val repository = application.get<TodoListRepository>()
         val id = UUID.randomUUID()
 
         shouldThrow<RuntimeException> {
             ctx.resultTransactionCoroutine { c ->
-                val todo = TodoForSave(id = id, name = "Rollback test", completedAt = null, userId = "test-user")
-                repository.upsert(c, todo)
+                repository.upsert(
+                    c,
+                    TodoListForSave(id = id, name = "Rollback test", description = null, createdByUserId = "test-user"),
+                )
                 throw RuntimeException("Simulated failure")
             }
         }
@@ -46,11 +56,19 @@ class TransactionExtensionsIntegrationTest : IntegrationTestBase({
 
     test("resultTransactionCoroutine commits inserts when Ok is returned") {
         val ctx = application.get<DSLContext>()
-        val repository = application.get<TodoRepository>()
+        val repository = application.get<TodoListRepository>()
         val id = UUID.randomUUID()
 
         val result = ctx.resultTransactionCoroutine { c ->
-            repository.upsert(c, TodoForSave(id = id, name = "Commit test", completedAt = null, userId = "test-user"))
+            repository.upsert(
+                c = c,
+                todoList = TodoListForSave(
+                    id = id,
+                    name = "Commit test",
+                    description = null,
+                    createdByUserId = "test-user",
+                ),
+            )
         }
 
         result.isOk shouldBe true

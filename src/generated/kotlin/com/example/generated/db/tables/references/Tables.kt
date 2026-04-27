@@ -7,6 +7,7 @@ package com.example.generated.db.tables.references
 
 import com.example.generated.db.tables.SchemaMigrations
 import com.example.generated.db.tables.Todo
+import com.example.generated.db.tables.TodoList
 
 
 
@@ -20,3 +21,8 @@ val SCHEMA_MIGRATIONS: SchemaMigrations = SchemaMigrations.SCHEMA_MIGRATIONS
  * deploying to a real environment.
  */
 val TODO: Todo = Todo.TODO
+
+/**
+ * A named collection of todo items belonging to a user.
+ */
+val TODO_LIST: TodoList = TodoList.TODO_LIST
