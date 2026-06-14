@@ -93,14 +93,14 @@ jobs:
       run: ./gradlew test integrationTest koverXmlReport koverHtmlReport
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       with:
         files: build/reports/kover/report.xml
         fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload test results to Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       with:
         files: build/test-results/**/*.xml
         report_type: test_results
