@@ -64,7 +64,6 @@ class TodoListRepository {
      */
     suspend fun getById(
         ctx: DSLContext,
-        createdByUserId: String,
         id: UUID,
         lockRecords: Boolean = false,
         lockWait: Duration = RepositoryConsts.DEFAULT_LOCK_TIMEOUT,
@@ -75,7 +74,7 @@ class TodoListRepository {
             ctx.setLocal("lock_timeout", DSL.inline(lockWait.toMillis().toString())).awaitFirstOrNull()
         }
         ctx.selectFrom(TODO_LIST)
-            .where(TODO_LIST.ID.eq(id).and(TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId)))
+            .where(TODO_LIST.ID.eq(id))
             .apply {
                 if (lockRecords) {
                     this.forUpdate()
@@ -108,12 +107,11 @@ class TodoListRepository {
      */
     suspend fun delete(
         c: Configuration,
-        createdByUserId: String,
         id: UUID,
     ): RepositoryResult<Unit> = runWrappingError {
         c.dsl()
             .deleteFrom(TODO_LIST)
-            .where(TODO_LIST.ID.eq(id).and(TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId)))
+            .where(TODO_LIST.ID.eq(id))
             .awaitSingle()
     }.mapExpectingOne()
 }

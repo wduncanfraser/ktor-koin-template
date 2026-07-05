@@ -31,7 +31,7 @@ class TransactionExtensionsIntegrationTest : IntegrationTestBase({
 
         result shouldBe Err(RepositoryError.RecordNotFound)
 
-        val afterRollback = repository.getById(ctx, "test-user", id)
+        val afterRollback = repository.getById(ctx, id)
         afterRollback shouldBe Err(RepositoryError.RecordNotFound)
     }
 
@@ -50,7 +50,7 @@ class TransactionExtensionsIntegrationTest : IntegrationTestBase({
             }
         }
 
-        val afterRollback = repository.getById(ctx, "test-user", id)
+        val afterRollback = repository.getById(ctx, id)
         afterRollback shouldBe Err(RepositoryError.RecordNotFound)
     }
 
@@ -73,7 +73,7 @@ class TransactionExtensionsIntegrationTest : IntegrationTestBase({
 
         result.isOk shouldBe true
 
-        val afterCommit = repository.getById(ctx, "test-user", id)
+        val afterCommit = repository.getById(ctx, id)
         afterCommit.isOk shouldBe true
     }
 })

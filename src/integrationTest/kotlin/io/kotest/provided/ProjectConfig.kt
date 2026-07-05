@@ -6,12 +6,16 @@ import io.kotest.core.config.AbstractProjectConfig
 class ProjectConfig : AbstractProjectConfig() {
     override suspend fun beforeProject() {
         IntegrationTestBase.postgres.start()
+        IntegrationTestBase.openfga.start()
+        IntegrationTestBase.fgaProvision.start()
         IntegrationTestBase.dbmate.start()
         IntegrationTestBase.valkey.start()
     }
 
     override suspend fun afterProject() {
         IntegrationTestBase.valkey.stop()
+        IntegrationTestBase.fgaProvision.stop()
+        IntegrationTestBase.openfga.stop()
         IntegrationTestBase.dbmate.stop()
         IntegrationTestBase.postgres.stop()
     }

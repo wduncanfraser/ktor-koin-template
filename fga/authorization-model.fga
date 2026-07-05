@@ -1,0 +1,20 @@
+model
+  schema 1.1
+
+type user
+
+type todo_list
+  relations
+    define owner: [user]
+    define editor: [user]
+    define viewer: [user]
+    define can_read: viewer or editor or owner
+    define can_write: editor or owner
+    define can_delete: owner
+
+type todo
+  relations
+    define parent_list: [todo_list]
+    define can_read: can_read from parent_list
+    define can_write: can_write from parent_list
+    define can_delete: can_delete from parent_list

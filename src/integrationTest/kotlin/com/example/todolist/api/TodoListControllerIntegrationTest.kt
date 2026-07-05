@@ -1,6 +1,9 @@
 package com.example.todolist.api
 
 import com.example.IntegrationTestBase
+import com.example.core.authorization.AuthorizationResource
+import com.example.core.authorization.AuthorizationService
+import com.example.core.authorization.AuthorizationTuple
 import com.example.generated.api.models.CreateTodoListRequestContract
 import com.example.generated.api.models.CreateTodoRequestContract
 import com.example.generated.api.models.ListTodoListsResponseContract
@@ -14,9 +17,11 @@ import io.kotest.assertions.assertSoftly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import org.koin.ktor.ext.get
 import java.util.UUID
 
 class TodoListControllerIntegrationTest : IntegrationTestBase({
@@ -656,6 +661,55 @@ class TodoListControllerIntegrationTest : IntegrationTestBase({
             clientB.get(todoItemUrl(list.id, todo.id)).status shouldBe HttpStatusCode.NotFound
             clientB.delete(todoListUrl(list.id)).status shouldBe HttpStatusCode.NotFound
             clientB.delete(todoItemUrl(list.id, todo.id)).status shouldBe HttpStatusCode.NotFound
+        }
+
+        test("a viewer can read a shared list and its todos, but cannot mutate them") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+            val authorizationService = application.get<AuthorizationService>()
+
+            val list = clientA.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "User A list"))
+            }.body<TodoListResponseContract>()
+
+            val todo = clientA.post(todoUrl(list.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User A todo"))
+            }.body<TodoResponseContract>()
+
+            authorizationService.writeTuples(listOf(
+                AuthorizationTuple.UserRelation(
+                    "test-user-id-2", "viewer", AuthorizationResource.TodoList(UUID.fromString(list.id)),
+                )
+            ))
+
+            clientB.get(todoListUrl(list.id)).status shouldBe HttpStatusCode.OK
+            clientB.get(todoUrl(list.id)).status shouldBe HttpStatusCode.OK
+            clientB.get(todoItemUrl(list.id, todo.id)).status shouldBe HttpStatusCode.OK
+
+            val createResponse = clientB.post(todoUrl(list.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User B todo"))
+            }
+            createResponse.status shouldBe HttpStatusCode.Forbidden
+            createResponse.body<ProblemDetailsContract>().detail shouldContain "can_write"
+            createResponse.body<ProblemDetailsContract>().detail shouldContain "listId=${list.id}"
+
+            val deleteTodoResponse = clientB.delete(todoItemUrl(list.id, todo.id))
+            deleteTodoResponse.status shouldBe HttpStatusCode.Forbidden
+            deleteTodoResponse.body<ProblemDetailsContract>().detail shouldContain "can_delete"
+            deleteTodoResponse.body<ProblemDetailsContract>().detail shouldContain "todoId=${todo.id}"
+
+            clientB.put(todoItemUrl(list.id, todo.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTodoRequestContract(name = "Renamed by B", completed = false))
+            }.status shouldBe HttpStatusCode.Forbidden
+            clientB.put(todoListUrl(list.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTodoListRequestContract(name = "Renamed by B"))
+            }.status shouldBe HttpStatusCode.Forbidden
+            clientB.delete(todoListUrl(list.id)).status shouldBe HttpStatusCode.Forbidden
         }
     }
 

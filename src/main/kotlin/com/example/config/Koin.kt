@@ -17,6 +17,7 @@ fun Application.configureKoin() {
             authNModule,
             databaseModule(),
             redisModule(),
+            openFgaModule(),
             todoModule,
             todoListModule,
         )

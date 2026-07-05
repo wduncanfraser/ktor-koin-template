@@ -40,7 +40,7 @@ class RepositoryPatternsIntegrationTest : IntegrationTestBase({
         coroutineScope {
             val lockHolder = async {
                 ctx.resultTransactionCoroutine { config ->
-                    val result = repository.getById(config.dsl(), "test-user", id, lockRecords = true)
+                    val result = repository.getById(config.dsl(), id, lockRecords = true)
                     lockAcquired.complete(Unit)
                     releaseLock.await()
                     result
@@ -52,7 +52,7 @@ class RepositoryPatternsIntegrationTest : IntegrationTestBase({
             // Start the second transaction while the lock is still held — it will block at the DB
             val secondResult = async {
                 ctx.resultTransactionCoroutine { config ->
-                    repository.getById(config.dsl(), "test-user", id, lockRecords = true)
+                    repository.getById(config.dsl(), id, lockRecords = true)
                 }
             }
 
@@ -89,7 +89,7 @@ class RepositoryPatternsIntegrationTest : IntegrationTestBase({
             // Coroutine 1: hold a FOR UPDATE lock on the row
             val lockHolder = async {
                 ctx.resultTransactionCoroutine { config ->
-                    val result = repository.getById(config.dsl(), "test-user", id, lockRecords = true)
+                    val result = repository.getById(config.dsl(), id, lockRecords = true)
                     lockAcquired.complete(Unit)
                     releaseLock.await()
                     result
@@ -103,7 +103,6 @@ class RepositoryPatternsIntegrationTest : IntegrationTestBase({
             val result = ctx.resultTransactionCoroutine { config ->
                 repository.getById(
                     ctx = config.dsl(),
-                    createdByUserId = "test-user",
                     id = id,
                     lockRecords = true,
                     lockWait = Duration.ofMillis(100),

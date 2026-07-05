@@ -96,6 +96,11 @@ class TodoRepository {
 
     /**
      * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if no [Todo] was found.
+     *
+     * The `id` + `todo_list_id` match is a security-relevant invariant, not just a convenience filter:
+     * authorization checks resolve a todo's permissions via its real parent list regardless of what
+     * [todoListId] the caller supplies, so this compound match is what actually rejects a request that
+     * targets a real, permitted todo through the wrong list segment in the URL. Do not drop it.
      */
     suspend fun getById(
         ctx: DSLContext,
@@ -139,6 +144,9 @@ class TodoRepository {
 
     /**
      * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if nothing was deleted.
+     *
+     * See [getById] — the `id` + `todo_list_id` match here is the same security-relevant invariant,
+     * not just a convenience filter.
      */
     suspend fun delete(
         c: Configuration,

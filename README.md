@@ -29,6 +29,10 @@ An opinionated Ktor template for async Kotlin web services. Encodes an API-first
 - Valkey 8.1 (Redis fork) via Lettuce
 - Session-based OAuth2 authentication (Discord provider)
 
+**Authorization**
+
+- OpenFGA — relationship-based access control (ReBAC)
+
 **Observability**
 
 - Cohort — health checks (`/health`)
@@ -38,7 +42,7 @@ An opinionated Ktor template for async Kotlin web services. Encodes an API-first
 **Testing**
 
 - Kotest (FunSpec)
-- Testcontainers (PostgreSQL + Valkey)
+- Testcontainers (PostgreSQL + Valkey + OpenFGA)
 
 **Quality**
 
@@ -83,6 +87,16 @@ Each layer has a typed error type. Repository returns `RepositoryResult<T>`, ser
 
 Koin modules are defined per feature (e.g. `todoModule`) and assembled in `config/Koin.kt`. Infrastructure modules (database, Redis, monitoring) are also in `config/`.
 
+## Authorization
+
+Access control is relationship-based (ReBAC) via [OpenFGA](https://openfga.dev/), not ownership columns in the database. Users are granted `owner`, `editor`, or `viewer` on a `todo_list`; those relations compute `can_read`/`can_write`/`can_delete`, which individual todos inherit from their parent list. The model itself is defined in [`fga/authorization-model.fga`](fga/authorization-model.fga) — that file is the source of truth, not this README.
+
+Today, relation assignment happens only at the `todo_list` level — a `todo` has no relations of its own, so it can't be shared independently of its list. That's a deliberate simplification for this template rather than a limitation of the approach: direct per-todo relations (e.g. `owner`/`editor`/`viewer` on `type todo`, unioned with the inherited ones) could be added later purely as a model change, since the application code already checks permissions against the specific resource being acted on and writes relationship tuples generically.
+
+`AuthorizationService` (backed by `OpenFgaAuthorizationService`) exposes `check`, `writeTuples`, and `deleteTuples`. A failed permission check returns 404 if the user has no access at all, or 403 if they can view the resource but lack the specific permission for the attempted action. Ownership tuples are written and removed inside the same database transaction as the resource itself, so a failed OpenFGA write rolls back the whole operation rather than leaving an inaccessible, orphaned row.
+
+The OpenFGA store and model are provisioned automatically — by the `fga-provision` service in `docker compose up`, and by equivalent Testcontainers in integration tests.
+
 ## Database Migrations
 
 Managed by [dbmate](https://github.com/amacneil/dbmate). Migration files in `db/migrations/` using timestamped names. Schema dump at `db/schema.sql`, maintained automatically by dbmate.
@@ -107,7 +121,7 @@ dbmate new <name>      # Create a new migration file
 ./gradlew integrationTest
 ```
 
-- Testcontainers spins up PostgreSQL 18 + Valkey 8.1 automatically
+- Testcontainers spins up PostgreSQL 18 + Valkey 8.1 + OpenFGA automatically
 - dbmate migrations are applied inside the containers before tests run
 - Each test truncates tables in `beforeEach` for isolation
 - Tests exercise the full HTTP stack via Ktor's `testApplication`
@@ -118,8 +132,8 @@ Docker must be running for integration tests.
 ## Running Locally
 
 ```bash
-# Start dependencies (DB, Redis, run migrations)
-docker compose up db valkey dbmate
+# Start dependencies (DB, Redis, OpenFGA, run migrations)
+docker compose up db valkey dbmate openfga fga-provision
 
 # Run the app
 ./gradlew run

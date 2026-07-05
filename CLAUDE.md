@@ -19,13 +19,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew dependencies --write-locks  # Regenerate gradle.lockfile after dependency changes
 ```
 
-Integration tests use Testcontainers (PostgreSQL + Valkey + dbmate for migrations), so Docker must be running.
+Integration tests use Testcontainers (PostgreSQL + Valkey + OpenFGA + dbmate for migrations), so Docker must be running.
 
 ## Running Locally
 
 ```bash
-# Start dependencies (DB, Valkey, run migrations)
-docker compose up db valkey dbmate
+# Start dependencies (DB, Valkey, OpenFGA, run migrations)
+docker compose up db valkey dbmate openfga fga-provision
 
 # Run the app
 ./gradlew run
@@ -58,10 +58,26 @@ Or run the full stack with `docker compose up`. App starts on `http://localhost:
 - **Validation** (`core/validation/CommonFieldRules.kt`): Shared konform field rules (e.g. `itemName()`) reused across feature modules. Module-specific rules live in `<module>/validation/`.
 - **Koin modules**: Each feature defines a Koin `module` (e.g. `todoModule`, `todoListModule`). All modules are assembled in `config/Koin.kt`. Infrastructure modules (database, redis, monitoring) are in `config/`.
 
+### Authorization (OpenFGA / ReBAC)
+
+Access control is relationship-based (ReBAC) via [OpenFGA](https://openfga.dev/), not ownership columns in the database. `fga/authorization-model.fga` is the source of truth for the current model — read it directly rather than trusting a copy here. It's provisioned into a running store by the `fga-provision` service in `docker compose up`, and by equivalent Testcontainers in integration tests (`IntegrationTestBase`'s `openfga`/`fgaProvision`).
+
+Relation assignment (`owner`/`editor`/`viewer`) happens only at the `todo_list` level today — a `todo` has no relations of its own, so its `can_read`/`can_write`/`can_delete` are entirely inherited from its parent list; it can't be shared independently. That's a template simplification, not a limitation of the approach: direct per-todo relations could be added later purely as a model change (e.g. `owner`/`editor`/`viewer` on `type todo`, unioned with the inherited ones via `... or can_read from parent_list`) — no service-layer changes are required, since permission checks already scope to the specific `AuthorizationResource.Todo` being acted on and tuple writes (`AuthorizationTuple.UserRelation`) already work against any `AuthorizationResource`.
+
+Core types (`core/authorization/`):
+
+- **`AuthorizationService`** — interface with `check`, `writeTuples`, `deleteTuples`; backed by `OpenFgaAuthorizationService`.
+- **`AuthorizationResource`** — sealed class identifying what's being checked (`TodoList`, `Todo`).
+- **`Permission`** — sealed interface; `Permission.Common` (`CAN_READ`/`CAN_WRITE`/`CAN_DELETE`) covers the relations every resource type defines. Feature-specific permissions (e.g. `can_share`) would implement `Permission` directly.
+- **`AuthorizationTuple`** — `UserRelation` (user → resource, e.g. owner) or `ResourceRelation` (resource → resource, e.g. a todo's `parent_list` link).
+- **`AuthorizationError`** — `NotFound` (404, no access at all) vs `Forbidden` (403, can view but lacks the specific permission); `check` distinguishes these by falling back to a `CAN_READ` check when the requested permission is denied. `WriteFailed` means a `writeTuples`/`deleteTuples` call itself failed — an infrastructure error, not a permission outcome.
+
+Service methods call `authorizationService.check(userId, permission, resource)` before reading or mutating, and bind `writeTuples`/`deleteTuples` results into the surrounding `resultTransactionCoroutine` so a failed tuple write rolls back the whole operation — a resource is never left committed without its ownership tuple.
+
 ### Testing
 
 - **Unit tests** (`src/test/`): Kotest `FunSpec` style. No special setup needed. Detekt runs on test sources as well as main.
-- **Integration tests** (`src/integrationTest/`): Use Ktor's `testApplication` with a custom `integrationTestModule` that wires up Testcontainers (PostgreSQL, Valkey) and runs dbmate migrations. `IntegrationTestBase` provides helpers for creating authenticated test clients with injected sessions. Each test truncates tables in `beforeEach`.
+- **Integration tests** (`src/integrationTest/`): Use Ktor's `testApplication` with a custom `integrationTestModule` that wires up Testcontainers (PostgreSQL, Valkey, OpenFGA) and runs dbmate migrations. `IntegrationTestBase` provides helpers for creating authenticated test clients with injected sessions. Each test truncates tables in `beforeEach`.
 
 ### Database Migrations
 

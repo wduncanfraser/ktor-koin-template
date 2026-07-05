@@ -1,5 +1,10 @@
 package com.example.todolist.services
 
+import com.example.core.authorization.AuthorizationError
+import com.example.core.authorization.AuthorizationResource
+import com.example.core.authorization.AuthorizationService
+import com.example.core.authorization.AuthorizationTuple
+import com.example.core.authorization.Permission
 import com.example.core.domain.Page
 import com.example.core.repository.RepositoryError
 import com.example.core.validation.ValidationErrors
@@ -18,9 +23,13 @@ import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 
+/**
+ * Owns authorization for todo lists themselves.
+ */
 class TodoListService(
     private val ctx: DSLContext,
     private val todoListRepository: TodoListRepository,
+    private val authorizationService: AuthorizationService,
 ) {
     /**
      * Runs in a transaction to ensure list and count are consistent.
@@ -37,11 +46,24 @@ class TodoListService(
     /**
      * Returns [TodoListServiceError.TodoListNotFound] if no [TodoList] was found.
      */
-    suspend fun getTodoList(userId: String, id: UUID): TodoListServiceResult<TodoList> {
-        return todoListRepository.getById(ctx, userId, id)
-            .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
-    }
+    suspend fun getTodoList(userId: String, id: UUID): TodoListServiceResult<TodoList> =
+        coroutineBinding {
+            val todoList = todoListRepository.getById(ctx, id)
+                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
+                .bind()
+            authorizationService.check(
+                userId = userId, permission = Permission.Common.CAN_READ,
+                resource = AuthorizationResource.TodoList(todoList.id)
+            )
+                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
+                .bind()
+            todoList
+        }
 
+    /**
+     * Writes the `owner` tuple in the same transaction as the row insert — if the tuple write
+     * fails, the whole creation rolls back rather than leaving a committed list nobody can reach.
+     */
     suspend fun createTodoList(
         userId: String,
         todoListForCreate: TodoListForCreate,
@@ -51,7 +73,11 @@ class TodoListService(
                 .mapError { TodoListServiceError.ValidationFailed(it) }
                 .bind()
             val todoList = todoListForCreate.toPersistenceModel(userId)
-            todoListRepository.upsert(c, todoList).mapError { it.toServiceError() }.bind()
+            val savedList = todoListRepository.upsert(c, todoList).mapError { it.toServiceError() }.bind()
+            authorizationService.writeTuples(listOf(
+                AuthorizationTuple.UserRelation(userId, "owner", AuthorizationResource.TodoList(savedList.id))
+            )).mapError { it.toServiceError() }.bind()
+            savedList
         }
     }
 
@@ -63,7 +89,14 @@ class TodoListService(
             todoListForUpdate.validate()
                 .mapError { TodoListServiceError.ValidationFailed(it) }
                 .bind()
-            val todoList = todoListRepository.getById(c.dsl(), userId, todoListForUpdate.id, lockRecords = true)
+            val todoList = todoListRepository.getById(c.dsl(), todoListForUpdate.id, lockRecords = true)
+                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(todoListForUpdate.id)) }
+                .bind()
+            authorizationService.check(
+                userId = userId,
+                permission = Permission.Common.CAN_WRITE,
+                resource = AuthorizationResource.TodoList(todoList.id)
+            )
                 .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(todoListForUpdate.id)) }
                 .bind()
             val updatedTodoList = todoList.toPersistenceModel().apply { update(todoListForUpdate) }
@@ -73,12 +106,30 @@ class TodoListService(
         }
     }
 
+    /**
+     * Deletes the `owner` tuple in the same transaction as the row delete — if the tuple delete
+     * fails, the row delete rolls back too, rather than leaving an orphaned tuple behind.
+     */
     suspend fun deleteTodoList(
         userId: String,
         id: UUID,
     ): TodoListServiceResult<Unit> = ctx.resultTransactionCoroutine { c ->
-        todoListRepository.delete(c, userId, id)
-            .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
+        coroutineBinding {
+            val todoList = todoListRepository.getById(c.dsl(), id)
+                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
+                .bind()
+            authorizationService.check(
+                userId = userId,
+                permission = Permission.Common.CAN_DELETE,
+                resource = AuthorizationResource.TodoList(todoList.id)
+            )
+                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
+                .bind()
+            todoListRepository.delete(c, id).mapError { it.toServiceError() }.bind()
+            authorizationService.deleteTuples(listOf(
+                AuthorizationTuple.UserRelation(userId, "owner", AuthorizationResource.TodoList(id))
+            )).mapError { it.toServiceError() }.bind()
+        }
     }
 
     companion object {
@@ -88,19 +139,33 @@ class TodoListService(
          */
         private fun RepositoryError.toServiceError(
             notFoundError: TodoListServiceError? = null,
-        ): TodoListServiceError {
-            return when (this) {
-                RepositoryError.RecordNotFound -> {
-                    notFoundError ?: run {
-                        logger.error { "Unexpected return of RecordNotFound" }
-                        TodoListServiceError.UnhandledServiceError(null)
-                    }
+        ): TodoListServiceError = when (this) {
+            RepositoryError.RecordNotFound -> {
+                notFoundError ?: run {
+                    logger.error { "Unexpected return of RecordNotFound" }
+                    TodoListServiceError.UnhandledServiceError(null)
                 }
-
-                is RepositoryError.RecordConstraintViolation -> TodoListServiceError.UnhandledServiceError(this.t)
-                is RepositoryError.LockTimeout -> TodoListServiceError.UnhandledServiceError(this.t)
-                is RepositoryError.UnhandledException -> TodoListServiceError.UnhandledServiceError(this.t)
             }
+
+            is RepositoryError.RecordConstraintViolation -> TodoListServiceError.UnhandledServiceError(this.t)
+            is RepositoryError.LockTimeout -> TodoListServiceError.UnhandledServiceError(this.t)
+            is RepositoryError.UnhandledException -> TodoListServiceError.UnhandledServiceError(this.t)
+        }
+
+        /**
+         * Converts an [AuthorizationError] to a [TodoListServiceError]. Takes an optional parameter for explicitly
+         * setting the error if the underlying Authorization Error is [AuthorizationError.NotFound].
+         */
+        private fun AuthorizationError.toServiceError(
+            notFoundError: TodoListServiceError? = null,
+        ): TodoListServiceError = when (this) {
+            AuthorizationError.NotFound -> notFoundError ?: run {
+                logger.error { "Unexpected return of AuthorizationError.NotFound" }
+                TodoListServiceError.UnhandledServiceError(null)
+            }
+            is AuthorizationError.Forbidden -> TodoListServiceError.Forbidden(this.resource, this.permission)
+            is AuthorizationError.CheckFailed -> TodoListServiceError.UnhandledServiceError(this.t)
+            is AuthorizationError.WriteFailed -> TodoListServiceError.UnhandledServiceError(this.t)
         }
     }
 }
@@ -108,6 +173,7 @@ class TodoListService(
 sealed class TodoListServiceError {
     data class TodoListNotFound(val id: UUID) : TodoListServiceError()
     data class ValidationFailed(val errors: ValidationErrors) : TodoListServiceError()
+    data class Forbidden(val resource: AuthorizationResource, val permission: Permission) : TodoListServiceError()
     data class UnhandledServiceError(val t: Throwable?) : TodoListServiceError()
 }
 
