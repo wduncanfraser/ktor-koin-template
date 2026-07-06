@@ -119,8 +119,9 @@ class TodoListService(
     }
 
     /**
-     * Deletes the `owner` tuple in the same transaction as the row delete — if the tuple delete
-     * fails, the row delete rolls back too, rather than leaving an orphaned tuple behind.
+     * Deletes every tuple involving the list (its owner/editor/viewer relations and its todos'
+     * `parent_list` links) in the same transaction as the row delete so nothing is orphaned. A tuple-cleanup
+     * failure rolls the row delete back rather than committing a half-cleaned deletion.
      */
     suspend fun deleteTodoList(
         userId: String,
@@ -138,9 +139,9 @@ class TodoListService(
                 .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
                 .bind()
             todoListRepository.delete(c, id).mapError { it.toServiceError() }.bind()
-            authorizationService.deleteTuples(listOf(
-                AuthorizationTuple.UserRelation(userId, "owner", AuthorizationResource.TodoList(id))
-            )).mapError { it.toServiceError() }.bind()
+            authorizationService.deleteAllTuplesFor(AuthorizationResource.TodoList(id))
+                .mapError { it.toServiceError() }
+                .bind()
         }
     }
 

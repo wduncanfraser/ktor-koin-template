@@ -14,8 +14,10 @@ import com.example.generated.api.models.TodoResponseContract
 import com.example.generated.api.models.UpdateTodoListRequestContract
 import com.example.generated.api.models.UpdateTodoRequestContract
 import io.kotest.assertions.assertSoftly
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -740,6 +742,46 @@ class TodoListControllerIntegrationTest : IntegrationTestBase({
                 setBody(UpdateTodoListRequestContract(name = "Renamed by B"))
             }.status shouldBe HttpStatusCode.Forbidden
             clientB.delete(todoListUrl(list.id)).status shouldBe HttpStatusCode.Forbidden
+        }
+
+        test("deleting a list removes every tuple involving it — shares and child todo links included") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+            val authorizationService = application.get<AuthorizationService>()
+
+            val list = clientA.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "User A list"))
+            }.body<TodoListResponseContract>()
+            clientA.post(todoUrl(list.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User A todo"))
+            }
+
+            // Share with B, so the list carries a viewer tuple alongside A's owner tuple and the
+            // todo's parent_list link — three distinct tuples that must all be cleaned up.
+            authorizationService.writeTuples(listOf(
+                AuthorizationTuple.UserRelation(
+                    "test-user-id-2", "viewer", AuthorizationResource.TodoList(UUID.fromString(list.id)),
+                )
+            ))
+            clientB.get(todoListsUrl()).body<ListTodoListsResponseContract>()
+                .data.map { it.id } shouldContain list.id
+
+            // Sanity: the three tuples really exist before deletion, so the emptiness asserted
+            // afterwards is meaningful (and the read helper isn't vacuously returning nothing).
+            fgaTuplesWithObject("todo_list:${list.id}") shouldHaveSize 2 // A's owner + B's viewer
+            fgaTuplesWithUser("todo", "todo_list:${list.id}", "parent_list") shouldHaveSize 1 // the todo link
+
+            clientA.delete(todoListUrl(list.id)).status shouldBe HttpStatusCode.NoContent
+
+            // Nothing should reference the deleted list (owner + viewer gone) and no orphaned
+            // parent_list link should remain for its cascade-deleted todos.
+            fgaTuplesWithObject("todo_list:${list.id}").shouldBeEmpty()
+            fgaTuplesWithUser("todo", "todo_list:${list.id}", "parent_list").shouldBeEmpty()
+            // The share is gone behaviourally too: B no longer sees the list.
+            clientB.get(todoListsUrl()).body<ListTodoListsResponseContract>()
+                .data.map { it.id } shouldNotContain list.id
         }
     }
 

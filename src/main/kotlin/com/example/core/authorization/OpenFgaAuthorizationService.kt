@@ -7,13 +7,16 @@ import com.github.michaelbull.result.Result
 import dev.openfga.sdk.api.client.OpenFgaClient
 import dev.openfga.sdk.api.client.model.ClientCheckRequest
 import dev.openfga.sdk.api.client.model.ClientListObjectsRequest
+import dev.openfga.sdk.api.client.model.ClientReadRequest
 import dev.openfga.sdk.api.client.model.ClientTupleKey
 import dev.openfga.sdk.api.client.model.ClientTupleKeyWithoutCondition
 import dev.openfga.sdk.api.client.model.ClientWriteRequest
 import dev.openfga.sdk.api.configuration.ClientCheckOptions
 import dev.openfga.sdk.api.configuration.ClientConfiguration
 import dev.openfga.sdk.api.configuration.ClientListObjectsOptions
+import dev.openfga.sdk.api.configuration.ClientReadOptions
 import dev.openfga.sdk.api.configuration.ClientWriteOptions
+import dev.openfga.sdk.api.model.WriteRequestDeletes
 import dev.openfga.sdk.errors.ApiException
 import dev.openfga.sdk.errors.FgaInvalidParameterException
 import dev.openfga.sdk.errors.FgaValidationError
@@ -23,6 +26,10 @@ import kotlinx.coroutines.runBlocking
 import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
+
+// OpenFGA caps a single Write request at OPENFGA_MAX_TUPLES_PER_WRITE tuples (default 100). A bulk
+// cleanup can exceed that, so deletes are chunked at this size (see [deleteKeysChunked]).
+private const val MAX_TUPLES_PER_WRITE = 100
 
 /**
  * [AuthorizationService] backed by a real OpenFGA store. [check] evaluates the requested
@@ -163,37 +170,116 @@ class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationS
         }
     }
 
-    private fun AuthorizationResourceType.toFgaType(): String = when (this) {
-        AuthorizationResourceType.TodoList -> "todo_list"
-        AuthorizationResourceType.Todo -> "todo"
+    override suspend fun deleteAllTuplesFor(resource: AuthorizationResource): Result<Unit, AuthorizationError> {
+        return try {
+            // Phase 1: structural links pointing AT the resource (its children's parent links) —
+            // the large, possibly multi-chunk set, and none of it grants anyone access to the
+            // resource itself.
+            resource.structuralReadQueries().forEach { deleteKeysChunked(readAllKeys(it)) }
+            // Phase 2: relations held directly ON the resource (owner/editor/viewer) — reached only
+            // if phase 1 fully succeeded, so a partial failure never strips the caller's own grant
+            // before its dependents are cleaned up. See [AuthorizationService.deleteAllTuplesFor].
+            deleteKeysChunked(readAllKeys(resource.directReadQuery()))
+            Ok(Unit)
+        } catch (e: ApiException) {
+            logger.error(e) { "OpenFGA deleteAllTuplesFor failed for ${resource.toFgaObject()}" }
+            Err(AuthorizationError.WriteFailed(e))
+        } catch (e: FgaInvalidParameterException) {
+            logger.error(e) { "OpenFGA deleteAllTuplesFor failed for ${resource.toFgaObject()}" }
+            Err(AuthorizationError.WriteFailed(e))
+        } catch (e: FgaValidationError) {
+            logger.error(e) { "OpenFGA deleteAllTuplesFor failed for ${resource.toFgaObject()}" }
+            Err(AuthorizationError.WriteFailed(e))
+        }
     }
 
-    private fun AuthorizationResource.toFgaObject(): String = "${type.toFgaType()}:$id"
-
-    // ResourceRelation direction is not symmetric with UserRelation: `parent_list` is a relation
-    // defined ON `type todo` (see fga/authorization-model.fga), pointing to a `todo_list` — so the
-    // FGA object is the child (todo) and the FGA user is the parent (todo_list), i.e.
-    // `todo:<child>#parent_list@todo_list:<parent>`. Swapping these produces a tuple the schema
-    // rejects (this was a real bug once already — see AuthorizationError.WriteFailed handling).
-    private fun AuthorizationTuple.toClientTupleKey(): ClientTupleKey = when (this) {
-        is AuthorizationTuple.UserRelation -> ClientTupleKey()
-            .user("user:$userId")
-            .relation(relation)
-            ._object(resource.toFgaObject())
-        is AuthorizationTuple.ResourceRelation -> ClientTupleKey()
-            .user(parent.toFgaObject())
-            .relation(relation)
-            ._object(child.toFgaObject())
+    /**
+     * Reads every tuple matching [query], following continuation tokens, and maps each to a delete
+     * key. Throws the OpenFGA SDK exceptions; [deleteAllTuplesFor] maps them to [AuthorizationError].
+     */
+    private suspend fun readAllKeys(query: ReadQuery): List<ClientTupleKeyWithoutCondition> {
+        val request = ClientReadRequest()._object(query.objectRef)
+        query.user?.let { request.user(it) }
+        query.relation?.let { request.relation(it) }
+        val keys = mutableListOf<ClientTupleKeyWithoutCondition>()
+        var token: String? = null
+        do {
+            val options = ClientReadOptions().apply { token?.let { continuationToken(it) } }
+            val response = client.read(request, options).await()
+            response.tuples.forEach { tuple ->
+                val key = tuple.key
+                keys.add(
+                    ClientTupleKeyWithoutCondition()
+                        .user(key.user)
+                        .relation(key.relation)
+                        ._object(key.getObject()),
+                )
+            }
+            token = response.continuationToken.takeIf { it.isNotBlank() }
+        } while (token != null)
+        return keys
     }
 
-    private fun AuthorizationTuple.toClientTupleKeyWithoutCondition(): ClientTupleKeyWithoutCondition = when (this) {
-        is AuthorizationTuple.UserRelation -> ClientTupleKeyWithoutCondition()
-            .user("user:$userId")
-            .relation(relation)
-            ._object(resource.toFgaObject())
-        is AuthorizationTuple.ResourceRelation -> ClientTupleKeyWithoutCondition()
-            .user(parent.toFgaObject())
-            .relation(relation)
-            ._object(child.toFgaObject())
+    /**
+     * Deletes [keys] non-transactionally in chunks of [MAX_TUPLES_PER_WRITE] (OpenFGA caps a single
+     * Write at that many tuples), ignoring already-missing tuples so a retry after a partial failure
+     * converges. Throws the OpenFGA SDK exceptions; the caller maps them to [AuthorizationError].
+     */
+    private suspend fun deleteKeysChunked(keys: List<ClientTupleKeyWithoutCondition>) {
+        if (keys.isEmpty()) return
+        val options = ClientWriteOptions()
+            .authorizationModelId(authorizationModelId)
+            .disableTransactions(true)
+            .transactionChunkSize(MAX_TUPLES_PER_WRITE)
+            .onMissing(WriteRequestDeletes.OnMissingEnum.IGNORE)
+        client.write(ClientWriteRequest().deletes(keys), options).await()
     }
+
+}
+
+/** A single OpenFGA Read filter — an object (full or type-only) with optional user/relation. */
+private data class ReadQuery(val objectRef: String, val user: String? = null, val relation: String? = null)
+
+/** Read queries for structural links that point AT this resource (from other resources). */
+private fun AuthorizationResource.structuralReadQueries(): List<ReadQuery> = when (this) {
+    is AuthorizationResource.TodoList ->
+        listOf(ReadQuery(objectRef = "todo:", user = toFgaObject(), relation = "parent_list"))
+    is AuthorizationResource.Todo -> emptyList()
+}
+
+/** Read query for the relations held directly ON this resource. */
+private fun AuthorizationResource.directReadQuery(): ReadQuery = ReadQuery(objectRef = toFgaObject())
+
+private fun AuthorizationResourceType.toFgaType(): String = when (this) {
+    AuthorizationResourceType.TodoList -> "todo_list"
+    AuthorizationResourceType.Todo -> "todo"
+}
+
+private fun AuthorizationResource.toFgaObject(): String = "${type.toFgaType()}:$id"
+
+// ResourceRelation direction is not symmetric with UserRelation: `parent_list` is a relation
+// defined ON `type todo` (see fga/authorization-model.fga), pointing to a `todo_list` — so the
+// FGA object is the child (todo) and the FGA user is the parent (todo_list), i.e.
+// `todo:<child>#parent_list@todo_list:<parent>`. Swapping these produces a tuple the schema
+// rejects (this was a real bug once already — see AuthorizationError.WriteFailed handling).
+private fun AuthorizationTuple.toClientTupleKey(): ClientTupleKey = when (this) {
+    is AuthorizationTuple.UserRelation -> ClientTupleKey()
+        .user("user:$userId")
+        .relation(relation)
+        ._object(resource.toFgaObject())
+    is AuthorizationTuple.ResourceRelation -> ClientTupleKey()
+        .user(parent.toFgaObject())
+        .relation(relation)
+        ._object(child.toFgaObject())
+}
+
+private fun AuthorizationTuple.toClientTupleKeyWithoutCondition(): ClientTupleKeyWithoutCondition = when (this) {
+    is AuthorizationTuple.UserRelation -> ClientTupleKeyWithoutCondition()
+        .user("user:$userId")
+        .relation(relation)
+        ._object(resource.toFgaObject())
+    is AuthorizationTuple.ResourceRelation -> ClientTupleKeyWithoutCondition()
+        .user(parent.toFgaObject())
+        .relation(relation)
+        ._object(child.toFgaObject())
 }

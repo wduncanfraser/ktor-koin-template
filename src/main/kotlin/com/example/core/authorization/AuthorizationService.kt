@@ -42,6 +42,22 @@ interface AuthorizationService {
     ): Result<List<UUID>, AuthorizationError>
 
     /**
+     * Deletes every relationship tuple in which [resource] participates — both relations assigned
+     * directly on it (e.g. owner/editor/viewer) and structural links from other resources that
+     * point to it (e.g. a child's parent link). Call when a resource is destroyed so no tuples are
+     * orphaned. Idempotent: deleting a tuple that no longer exists is not an error.
+     *
+     * Ordering guarantee: structural links pointing *at* the resource are removed before the
+     * relations held *directly on* the resource. So if the deletion fails partway, the resource's
+     * own access grants (which include whatever grants the caller the permission to delete it) are
+     * the last to go — a caller is never left unable to retry because it deleted its own delete
+     * permission early.
+     *
+     * Returns [AuthorizationError.WriteFailed] if the deletion could not be completed.
+     */
+    suspend fun deleteAllTuplesFor(resource: AuthorizationResource): Result<Unit, AuthorizationError>
+
+    /**
      * Writes relationship tuples to the authorization store.
      * Called on resource creation to assign ownership and structural links.
      */
