@@ -20,7 +20,7 @@ micrometer = "1.17.0"
 netty = "4.2.15.Final"
 postgresql = "42.7.11" # Used in code generation tasks only
 r2dbc-pool = "1.0.2.RELEASE"
-r2dbc-postgresql = "1.1.1.RELEASE"
+r2dbc-postgresql = "1.1.2.RELEASE"
 testcontainers = "2.0.5"
 
 [libraries]
