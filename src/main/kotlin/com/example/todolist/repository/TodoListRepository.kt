@@ -11,6 +11,7 @@ import com.example.generated.db.tables.references.TODO_LIST
 import com.example.todolist.domain.TodoList
 import com.example.todolist.domain.TodoListForSave
 import com.example.todolist.repository.mappers.TodoListMapper
+import com.github.michaelbull.result.Ok
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactive.asFlow
@@ -28,35 +29,38 @@ class TodoListRepository {
      */
     suspend fun list(
         ctx: DSLContext,
-        createdByUserId: String,
+        authorizedIds: List<UUID>,
         pageSize: Int,
         page: Int,
-    ): RepositoryResult<Page<TodoList>> = runWrappingError {
-        val conditions = TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId)
-        val totalRows = ctx.selectCount()
-            .from(TODO_LIST)
-            .where(conditions)
-            .awaitSingle()
-            .get(0, Int::class.java)
-        val totalPages = PaginationUtil.calculateTotalPages(totalRows, pageSize)
-        val offset = PaginationUtil.calculateOffset(page, pageSize)
+    ): RepositoryResult<Page<TodoList>> {
+        if (authorizedIds.isEmpty()) return Ok(PaginationUtil.emptyPage(pageSize, page))
+        return runWrappingError {
+            val conditions = TODO_LIST.ID.`in`(authorizedIds)
+            val totalRows = ctx.selectCount()
+                .from(TODO_LIST)
+                .where(conditions)
+                .awaitSingle()
+                .get(0, Int::class.java)
+            val totalPages = PaginationUtil.calculateTotalPages(totalRows, pageSize)
+            val offset = PaginationUtil.calculateOffset(page, pageSize)
 
-        val data = ctx.selectFrom(TODO_LIST)
-            .where(conditions)
-            .orderBy(TODO_LIST.CREATED_AT.asc())
-            .limit(pageSize)
-            .offset(offset)
-            .asFlow()
-            .map(TodoListMapper::toDomain)
-            .toList()
+            val data = ctx.selectFrom(TODO_LIST)
+                .where(conditions)
+                .orderBy(TODO_LIST.CREATED_AT.asc())
+                .limit(pageSize)
+                .offset(offset)
+                .asFlow()
+                .map(TodoListMapper::toDomain)
+                .toList()
 
-        Page(
-            data = data,
-            pageNumber = page,
-            pageSize = pageSize,
-            totalRows = totalRows,
-            totalPages = totalPages,
-        )
+            Page(
+                data = data,
+                pageNumber = page,
+                pageSize = pageSize,
+                totalRows = totalRows,
+                totalPages = totalPages,
+            )
+        }
     }
 
     /**
@@ -64,7 +68,6 @@ class TodoListRepository {
      */
     suspend fun getById(
         ctx: DSLContext,
-        createdByUserId: String,
         id: UUID,
         lockRecords: Boolean = false,
         lockWait: Duration = RepositoryConsts.DEFAULT_LOCK_TIMEOUT,
@@ -75,7 +78,7 @@ class TodoListRepository {
             ctx.setLocal("lock_timeout", DSL.inline(lockWait.toMillis().toString())).awaitFirstOrNull()
         }
         ctx.selectFrom(TODO_LIST)
-            .where(TODO_LIST.ID.eq(id).and(TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId)))
+            .where(TODO_LIST.ID.eq(id))
             .apply {
                 if (lockRecords) {
                     this.forUpdate()
@@ -103,17 +106,17 @@ class TodoListRepository {
     }
 
     /**
-     * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if nothing was deleted.
      * Cascade deletes all [com.example.todo.domain.Todo]s belonging to this list.
+     *
+     * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if nothing was deleted.
      */
     suspend fun delete(
         c: Configuration,
-        createdByUserId: String,
         id: UUID,
     ): RepositoryResult<Unit> = runWrappingError {
         c.dsl()
             .deleteFrom(TODO_LIST)
-            .where(TODO_LIST.ID.eq(id).and(TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId)))
+            .where(TODO_LIST.ID.eq(id))
             .awaitSingle()
     }.mapExpectingOne()
 }

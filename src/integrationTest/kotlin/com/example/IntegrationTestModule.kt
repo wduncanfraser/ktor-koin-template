@@ -4,6 +4,7 @@ import com.example.authn.authNModule
 import com.example.config.AuthenticationConfig
 import com.example.config.CorsConfig
 import com.example.config.DatabaseConfig
+import com.example.config.OpenFgaConfig
 import com.example.config.RedisConfig
 import com.example.config.apiRoutes
 import com.example.config.configureCors
@@ -13,6 +14,7 @@ import com.example.config.configureStatusPages
 import com.example.config.databaseModule
 import com.example.config.httpClientModule
 import com.example.config.monitoringModule
+import com.example.config.openFgaModule
 import com.example.config.redisModule
 import com.example.config.warmupDatabase
 import com.example.todo.todoModule
@@ -28,6 +30,7 @@ import org.koin.logger.slf4jLogger
 fun Application.integrationTestModule(
     databaseConfig: DatabaseConfig,
     redisConfig: RedisConfig,
+    openFgaConfig: OpenFgaConfig,
     authConfig: AuthenticationConfig,
     corsConfig: CorsConfig,
 ) {
@@ -44,6 +47,7 @@ fun Application.integrationTestModule(
             authNModule,
             databaseModule(databaseConfig),
             redisModule(redisConfig),
+            openFgaModule(openFgaConfig),
             todoModule,
             todoListModule,
         )

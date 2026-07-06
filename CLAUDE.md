@@ -19,13 +19,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew dependencies --write-locks  # Regenerate gradle.lockfile after dependency changes
 ```
 
-Integration tests use Testcontainers (PostgreSQL + Valkey + dbmate for migrations), so Docker must be running.
+Integration tests use Testcontainers (PostgreSQL + Valkey + OpenFGA + dbmate for migrations), so Docker must be running.
 
 ## Running Locally
 
 ```bash
-# Start dependencies (DB, Valkey, run migrations)
-docker compose up db valkey dbmate
+# Start dependencies (DB, Valkey, OpenFGA, run migrations)
+docker compose up db valkey dbmate openfga fga-provision
 
 # Run the app
 ./gradlew run
@@ -58,10 +58,27 @@ Or run the full stack with `docker compose up`. App starts on `http://localhost:
 - **Validation** (`core/validation/CommonFieldRules.kt`): Shared konform field rules (e.g. `itemName()`) reused across feature modules. Module-specific rules live in `<module>/validation/`.
 - **Koin modules**: Each feature defines a Koin `module` (e.g. `todoModule`, `todoListModule`). All modules are assembled in `config/Koin.kt`. Infrastructure modules (database, redis, monitoring) are in `config/`.
 
+### Authorization (OpenFGA / ReBAC)
+
+Access control is relationship-based (ReBAC) via [OpenFGA](https://openfga.dev/), not ownership columns in the database. `fga/authorization-model.fga` is the source of truth for the model — read it directly. The README's Authorization section covers the conceptual model and the production-scaling caveats; this section is the in-code reference. The store/model are provisioned by the `fga-provision` service in `docker compose up`, and by equivalent Testcontainers in integration tests (`IntegrationTestBase`).
+
+Relations (`owner`/`editor`/`viewer`) are assigned only at the `todo_list` level; a `todo` inherits `can_read`/`can_write`/`can_delete` from its parent list and can't be shared independently. Adding per-todo sharing is a pure model change (add relations to `type todo`, union with the inherited ones) — no service code changes, since checks already scope to the specific `AuthorizationResource` and tuple writes are generic.
+
+Core types (`core/authorization/`):
+
+- **`AuthorizationService`** — interface (`check`, `listResourceIds`, `writeTuples`, `deleteTuples`, `deleteAllTuplesFor`), backed by `OpenFgaAuthorizationService`. `listResourceIds` backs the list endpoints (`GET /todo-lists`, `GET /todos`) so they return everything the caller can read, not just what they created; its scaling limits and the production alternative are on the method KDoc and in the README.
+- **`deleteAllTuplesFor(resource)`** removes *every* tuple involving a resource when it's destroyed (OpenFGA has no cascade/pattern-delete). `deleteTodoList` uses it; `deleteTodo` stays an explicit single-tuple delete and must be updated if per-todo relations are ever added. Ordering, chunking, and cross-store (Postgres + OpenFGA) partial-failure semantics are on the method KDoc.
+- **`AuthorizationResource`** — sealed class identifying what's being checked (`TodoList`, `Todo`). **`AuthorizationResourceType`** mirrors it without an id (`listResourceIds` needs a type to query, not an id it doesn't have yet).
+- **`Permission`** — sealed interface; `Permission.Common` (`CAN_READ`/`CAN_WRITE`/`CAN_DELETE`) covers the relations every resource type defines. Feature-specific permissions (e.g. `can_share`) would implement `Permission` directly.
+- **`AuthorizationTuple`** — `UserRelation` (user → resource, e.g. owner) or `ResourceRelation` (resource → resource, e.g. a todo's `parent_list` link).
+- **`AuthorizationError`** — `NotFound` (404, no access at all) vs `Forbidden` (403, can view but lacks the specific permission); `check` distinguishes these by falling back to a `CAN_READ` check. `CheckFailed`/`WriteFailed` are infrastructure failures, not permission outcomes.
+
+Service methods `check` before reading or mutating (check first, then hit the DB), and bind `writeTuples`/`deleteTuples` into the surrounding `resultTransactionCoroutine` so a failed tuple write rolls back the whole operation — a resource is never left committed without its ownership tuple.
+
 ### Testing
 
 - **Unit tests** (`src/test/`): Kotest `FunSpec` style. No special setup needed. Detekt runs on test sources as well as main.
-- **Integration tests** (`src/integrationTest/`): Use Ktor's `testApplication` with a custom `integrationTestModule` that wires up Testcontainers (PostgreSQL, Valkey) and runs dbmate migrations. `IntegrationTestBase` provides helpers for creating authenticated test clients with injected sessions. Each test truncates tables in `beforeEach`.
+- **Integration tests** (`src/integrationTest/`): Use Ktor's `testApplication` with a custom `integrationTestModule` that wires up Testcontainers (PostgreSQL, Valkey, OpenFGA) and runs dbmate migrations. `IntegrationTestBase` provides helpers for creating authenticated test clients with injected sessions. Each test truncates tables in `beforeEach`.
 
 ### Database Migrations
 

@@ -1,6 +1,9 @@
 package com.example.todolist.api
 
 import com.example.IntegrationTestBase
+import com.example.core.authorization.AuthorizationResource
+import com.example.core.authorization.AuthorizationService
+import com.example.core.authorization.AuthorizationTuple
 import com.example.generated.api.models.CreateTodoListRequestContract
 import com.example.generated.api.models.CreateTodoRequestContract
 import com.example.generated.api.models.ListTodoListsResponseContract
@@ -11,12 +14,17 @@ import com.example.generated.api.models.TodoResponseContract
 import com.example.generated.api.models.UpdateTodoListRequestContract
 import com.example.generated.api.models.UpdateTodoRequestContract
 import io.kotest.assertions.assertSoftly
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import org.koin.ktor.ext.get
 import java.util.UUID
 
 class TodoListControllerIntegrationTest : IntegrationTestBase({
@@ -596,6 +604,30 @@ class TodoListControllerIntegrationTest : IntegrationTestBase({
             listResponse.body<ListTodosResponseContract>().data shouldHaveSize 0
         }
 
+        test("deleting a todo removes its parent_list tuple") {
+            val client = createAuthenticatedTestClient()
+
+            val list = client.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "My List"))
+            }.body<TodoListResponseContract>()
+
+            val created = client.post(todoUrl(list.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "To delete"))
+            }.body<TodoResponseContract>()
+
+            // Sanity: the todo's parent_list link exists before deletion, so the emptiness asserted
+            // afterwards is meaningful (and the read helper isn't vacuously returning nothing).
+            fgaTuplesWithUser("todo", "todo_list:${list.id}", "parent_list") shouldHaveSize 1
+
+            client.delete(todoItemUrl(list.id, created.id)).status shouldBe HttpStatusCode.NoContent
+
+            // TodoService.deleteTodo cleans up its single parent_list tuple explicitly; guard that it
+            // stays in sync (the DB row is already gone via the delete above).
+            fgaTuplesWithUser("todo", "todo_list:${list.id}", "parent_list").shouldBeEmpty()
+        }
+
         test("returns 404 when todo does not exist") {
             val client = createAuthenticatedTestClient()
 
@@ -637,6 +669,35 @@ class TodoListControllerIntegrationTest : IntegrationTestBase({
             responseB.body<ListTodoListsResponseContract>().data shouldHaveSize 1
         }
 
+        test("listTodoLists includes lists shared with, not just created by, the authenticated user") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+            val authorizationService = application.get<AuthorizationService>()
+
+            val listA = clientA.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "User A list"))
+            }.body<TodoListResponseContract>()
+            clientB.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "User B list"))
+            }
+
+            authorizationService.writeTuples(listOf(
+                AuthorizationTuple.UserRelation(
+                    "test-user-id-2", "viewer", AuthorizationResource.TodoList(UUID.fromString(listA.id)),
+                )
+            ))
+
+            val responseB = clientB.get(todoListsUrl())
+
+            responseB.status shouldBe HttpStatusCode.OK
+            val namesB = responseB.body<ListTodoListsResponseContract>().data.map { it.name }
+            namesB shouldHaveSize 2
+            namesB shouldContain "User A list"
+            namesB shouldContain "User B list"
+        }
+
         test("other user cannot access another user's list or its todos") {
             val clientA = createAuthenticatedTestClient()
             val clientB = createAuthenticatedTestClient(secondTestSession())
@@ -656,6 +717,95 @@ class TodoListControllerIntegrationTest : IntegrationTestBase({
             clientB.get(todoItemUrl(list.id, todo.id)).status shouldBe HttpStatusCode.NotFound
             clientB.delete(todoListUrl(list.id)).status shouldBe HttpStatusCode.NotFound
             clientB.delete(todoItemUrl(list.id, todo.id)).status shouldBe HttpStatusCode.NotFound
+        }
+
+        test("a viewer can read a shared list and its todos, but cannot mutate them") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+            val authorizationService = application.get<AuthorizationService>()
+
+            val list = clientA.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "User A list"))
+            }.body<TodoListResponseContract>()
+
+            val todo = clientA.post(todoUrl(list.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User A todo"))
+            }.body<TodoResponseContract>()
+
+            authorizationService.writeTuples(listOf(
+                AuthorizationTuple.UserRelation(
+                    "test-user-id-2", "viewer", AuthorizationResource.TodoList(UUID.fromString(list.id)),
+                )
+            ))
+
+            clientB.get(todoListUrl(list.id)).status shouldBe HttpStatusCode.OK
+            clientB.get(todoUrl(list.id)).status shouldBe HttpStatusCode.OK
+            clientB.get(todoItemUrl(list.id, todo.id)).status shouldBe HttpStatusCode.OK
+
+            val createResponse = clientB.post(todoUrl(list.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User B todo"))
+            }
+            createResponse.status shouldBe HttpStatusCode.Forbidden
+            createResponse.body<ProblemDetailsContract>().detail shouldContain "can_write"
+            createResponse.body<ProblemDetailsContract>().detail shouldContain "listId=${list.id}"
+
+            val deleteTodoResponse = clientB.delete(todoItemUrl(list.id, todo.id))
+            deleteTodoResponse.status shouldBe HttpStatusCode.Forbidden
+            deleteTodoResponse.body<ProblemDetailsContract>().detail shouldContain "can_delete"
+            deleteTodoResponse.body<ProblemDetailsContract>().detail shouldContain "todoId=${todo.id}"
+
+            clientB.put(todoItemUrl(list.id, todo.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTodoRequestContract(name = "Renamed by B", completed = false))
+            }.status shouldBe HttpStatusCode.Forbidden
+            clientB.put(todoListUrl(list.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTodoListRequestContract(name = "Renamed by B"))
+            }.status shouldBe HttpStatusCode.Forbidden
+            clientB.delete(todoListUrl(list.id)).status shouldBe HttpStatusCode.Forbidden
+        }
+
+        test("deleting a list removes every tuple involving it — shares and child todo links included") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+            val authorizationService = application.get<AuthorizationService>()
+
+            val list = clientA.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "User A list"))
+            }.body<TodoListResponseContract>()
+            clientA.post(todoUrl(list.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User A todo"))
+            }
+
+            // Share with B, so the list carries a viewer tuple alongside A's owner tuple and the
+            // todo's parent_list link — three distinct tuples that must all be cleaned up.
+            authorizationService.writeTuples(listOf(
+                AuthorizationTuple.UserRelation(
+                    "test-user-id-2", "viewer", AuthorizationResource.TodoList(UUID.fromString(list.id)),
+                )
+            ))
+            clientB.get(todoListsUrl()).body<ListTodoListsResponseContract>()
+                .data.map { it.id } shouldContain list.id
+
+            // Sanity: the three tuples really exist before deletion, so the emptiness asserted
+            // afterwards is meaningful (and the read helper isn't vacuously returning nothing).
+            fgaTuplesWithObject("todo_list:${list.id}") shouldHaveSize 2 // A's owner + B's viewer
+            fgaTuplesWithUser("todo", "todo_list:${list.id}", "parent_list") shouldHaveSize 1 // the todo link
+
+            clientA.delete(todoListUrl(list.id)).status shouldBe HttpStatusCode.NoContent
+
+            // Nothing should reference the deleted list (owner + viewer gone) and no orphaned
+            // parent_list link should remain for its cascade-deleted todos.
+            fgaTuplesWithObject("todo_list:${list.id}").shouldBeEmpty()
+            fgaTuplesWithUser("todo", "todo_list:${list.id}", "parent_list").shouldBeEmpty()
+            // The share is gone behaviourally too: B no longer sees the list.
+            clientB.get(todoListsUrl()).body<ListTodoListsResponseContract>()
+                .data.map { it.id } shouldNotContain list.id
         }
     }
 

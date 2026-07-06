@@ -6,7 +6,12 @@ import com.example.config.AuthenticationConfig
 import com.example.config.CorsConfig
 import com.example.config.DatabaseConfig
 import com.example.config.OAuthConfig
+import com.example.config.OpenFgaConfig
 import com.example.config.RedisConfig
+import dev.openfga.sdk.api.client.OpenFgaClient
+import dev.openfga.sdk.api.client.model.ClientReadRequest
+import dev.openfga.sdk.api.configuration.ClientConfiguration
+import dev.openfga.sdk.api.configuration.ClientReadOptions
 import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.core.test.TestCase
@@ -22,6 +27,7 @@ import io.ktor.server.sessions.*
 import io.ktor.server.testing.*
 import io.ktor.util.*
 import io.lettuce.core.api.StatefulRedisConnection
+import kotlinx.coroutines.future.await
 import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.get
 import org.testcontainers.containers.GenericContainer
@@ -71,9 +77,14 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
                         postLoginRedirectUrl = ""
                     )
                 )
+                val openFgaConfig = OpenFgaConfig(
+                    apiUrl = "http://${openfga.host}:${openfga.getMappedPort(OPENFGA_PORT)}",
+                    storeName = "todo",
+                )
                 integrationTestModule(
                     databaseConfig = databaseConfig,
                     redisConfig = redisConfig,
+                    openFgaConfig = openFgaConfig,
                     authConfig = authConfig,
                     corsConfig = CorsConfig(allowedHosts = "localhost:5173"),
                 )
@@ -128,9 +139,43 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
         }
     }
 
+    /** Every stored tuple where [objectRef] (e.g. `"todo_list:<id>"`) is the object, as `"user|relation|object"`. */
+    suspend fun fgaTuplesWithObject(objectRef: String): List<String> =
+        readFga(ClientReadRequest()._object(objectRef))
+
+    /** Every stored tuple linking a `[childType]:` object to [userRef] via [relation] (e.g. parent links). */
+    suspend fun fgaTuplesWithUser(childType: String, userRef: String, relation: String): List<String> =
+        readFga(ClientReadRequest()._object("$childType:").user(userRef).relation(relation))
+
+    private suspend fun readFga(request: ClientReadRequest): List<String> {
+        val client = openFgaClient()
+        val results = mutableListOf<String>()
+        var token: String? = null
+        do {
+            val options = ClientReadOptions().apply { token?.let { continuationToken(it) } }
+            val response = client.read(request, options).await()
+            response.tuples.forEach { results.add("${it.key.user}|${it.key.relation}|${it.key.getObject()}") }
+            token = response.continuationToken.takeIf { it.isNotBlank() }
+        } while (token != null)
+        return results
+    }
+
+    private suspend fun openFgaClient(): OpenFgaClient {
+        fgaClient?.let { return it }
+        val config = ClientConfiguration().apiUrl("http://${openfga.host}:${openfga.getMappedPort(OPENFGA_PORT)}")
+        val client = OpenFgaClient(config)
+        val storeId = client.listStores().await().stores.orEmpty().firstOrNull { it.name == "todo" }?.id
+            ?: error("OpenFGA store 'todo' not found")
+        config.storeId(storeId)
+        return client.also { fgaClient = it }
+    }
+
+    private var fgaClient: OpenFgaClient? = null
+
     companion object {
         private val DATABASE_TABLES = listOf("todo", "todo_list")
         private const val REDIS_PORT = 6379
+        private const val OPENFGA_PORT = 8080
         private const val TEST_SESSION_SIGNING_KEY = "0101010101010101010101010101010101010101010101010101010101010101"
         const val TEST_SESSION_COOKIE_NAME = "test-session-cookie"
 
@@ -147,6 +192,29 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
         val valkey = GenericContainer("valkey/valkey:8.1-alpine").apply {
             withExposedPorts(REDIS_PORT)
             waitingFor(Wait.forListeningPort())
+        }
+
+        val openfga = GenericContainer("openfga/openfga:latest").apply {
+            withNetwork(testNetwork)
+            withNetworkAliases("openfga")
+            withCommand("run")
+            withExposedPorts(OPENFGA_PORT)
+            waitingFor(Wait.forHttp("/healthz").forPort(OPENFGA_PORT))
+        }
+
+        val fgaProvision = GenericContainer("openfga/cli:latest").apply {
+            withNetwork(testNetwork)
+            withCopyToContainer(
+                MountableFile.forHostPath("${System.getProperty("user.dir")}/fga"),
+                "/model",
+            )
+            withCommand(
+                "store", "create",
+                "--api-url", "http://openfga:8080",
+                "--name", "todo",
+                "--model", "/model/authorization-model.fga",
+            )
+            withStartupCheckStrategy(OneShotStartupCheckStrategy().withTimeout(Duration.ofSeconds(30)))
         }
 
         // Run dbmate migrations using the internal docker network address

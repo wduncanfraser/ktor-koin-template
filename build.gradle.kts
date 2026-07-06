@@ -77,6 +77,9 @@ dependencies {
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.logback.classic)
 
+    // OpenFGA
+    implementation(libs.openfga.sdk)
+
     // Transitive dependency bumps for CVE fixes
     implementation(enforcedPlatform(libs.netty.bom))
 }

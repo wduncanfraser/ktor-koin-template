@@ -1,6 +1,9 @@
 package com.example.todo.api
 
 import com.example.IntegrationTestBase
+import com.example.core.authorization.AuthorizationResource
+import com.example.core.authorization.AuthorizationService
+import com.example.core.authorization.AuthorizationTuple
 import com.example.generated.api.models.CreateTodoListRequestContract
 import com.example.generated.api.models.CreateTodoRequestContract
 import com.example.generated.api.models.ListTodosResponseContract
@@ -10,12 +13,15 @@ import com.example.generated.api.models.UpdateTodoRequestContract
 import com.example.todolist.api.TodoListControllerIntegrationTest.Companion.todoListsUrl
 import com.example.todolist.api.TodoListControllerIntegrationTest.Companion.todoUrl
 import io.kotest.assertions.assertSoftly
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import org.koin.ktor.ext.get
+import java.util.UUID
 
 class TodoControllerIntegrationTest : IntegrationTestBase({
     context("GET /api/v1/todos") {
@@ -212,6 +218,33 @@ class TodoControllerIntegrationTest : IntegrationTestBase({
 
             responseA.body<ListTodosResponseContract>().data shouldHaveSize 2
             responseB.body<ListTodosResponseContract>().data shouldHaveSize 1
+        }
+
+        test("includes todos from a list shared with the authenticated user") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+            val authorizationService = application.get<AuthorizationService>()
+
+            val listA = clientA.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "User A list"))
+            }.body<TodoListResponseContract>()
+
+            clientA.post(todoUrl(listA.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "User A todo"))
+            }
+
+            authorizationService.writeTuples(listOf(
+                AuthorizationTuple.UserRelation(
+                    "test-user-id-2", "viewer", AuthorizationResource.TodoList(UUID.fromString(listA.id)),
+                )
+            ))
+
+            val responseB = clientB.get(TODOS_URL)
+
+            responseB.status shouldBe HttpStatusCode.OK
+            responseB.body<ListTodosResponseContract>().data.map { it.name } shouldContain "User A todo"
         }
     }
 }) {

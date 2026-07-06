@@ -1,6 +1,7 @@
 package com.example.config
 
 import com.example.authn.OAuthProcessingException
+import com.example.core.api.ProblemDetailsDefaults
 import com.example.core.api.exceptions.ProblemDetailsException
 import com.example.generated.api.models.ProblemDetailsContract
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -50,7 +51,7 @@ fun StatusPagesConfig.configureStatusPages() {
                 call.respondProblem(
                     statusCode,
                     ProblemDetailsContract(
-                        type = "https://example.com/errors/bad-request",
+                        type = ProblemDetailsDefaults.BadRequest.TYPE,
                         title = statusCode.description,
                         status = statusCode.value,
                         detail = cause.localizedMessage,
@@ -65,10 +66,10 @@ fun StatusPagesConfig.configureStatusPages() {
                 call.respondProblem(
                     statusCode,
                     ProblemDetailsContract(
-                        type = "https://example.com/errors/unauthorized",
+                        type = ProblemDetailsDefaults.Unauthorized.TYPE,
                         title = statusCode.description,
                         status = statusCode.value,
-                        detail = "Authentication failed, please try again",
+                        detail = ProblemDetailsDefaults.Unauthorized.MESSAGE,
                         instance = call.problemInstance()
                     )
                 )
@@ -94,10 +95,10 @@ fun StatusPagesConfig.configureStatusPages() {
                 call.respondProblem(
                     statusCode,
                     ProblemDetailsContract(
-                        type = "https://example.com/errors/server-error",
+                        type = ProblemDetailsDefaults.ServerError.TYPE,
                         title = statusCode.description,
                         status = statusCode.value,
-                        detail = "Unhandled error, please try again later",
+                        detail = ProblemDetailsDefaults.ServerError.MESSAGE,
                         instance = call.problemInstance()
                     )
                 )

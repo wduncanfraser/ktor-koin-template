@@ -11,6 +11,7 @@ services:
       DATABASE_URL: r2dbc:postgresql://db:5432/todo
       DATABASE_POOLSIZE: 10
       REDIS_HOST: valkey
+      OPENFGA_APIURL: http://openfga:8080
       AUTHENTICATION_OAUTH_POSTLOGINREDIRECTURL: http://localhost:80/
     ports:
     - "8080:8080"
@@ -23,6 +24,33 @@ services:
         condition: service_healthy
       dbmate:
         condition: service_completed_successfully
+      fga-provision:
+        condition: service_completed_successfully
+
+  openfga:
+    image: openfga/openfga:latest
+    command: run
+    restart: unless-stopped
+    ports:
+    - "8081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    networks:
+    - ktor-koin-template
+
+  fga-provision:
+    image: openfga/cli:latest
+    command: ["store", "create", "--api-url", "http://openfga:8080", "--name", "todo", "--model", "/model/authorization-model.fga"]
+    volumes:
+    - ./fga:/model
+    networks:
+    - ktor-koin-template
+    depends_on:
+      openfga:
+        condition: service_healthy
 
   dbmate:
     image: ghcr.io/amacneil/dbmate:2.30

@@ -7,6 +7,7 @@ koin = "4.2.1"
 kover = "0.9.8"
 kotest = "6.1.11"
 kotlin = "2.4.0"
+openfga = "0.9.7"
 kotlin-logging = "8.0.4"
 konform = "0.11.1"
 kotlin-result = "2.3.1"
@@ -65,6 +66,7 @@ lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
 netty-bom = { module = "io.netty:netty-bom", version.ref = "netty" }
+openfga-sdk = { module = "dev.openfga:openfga-sdk", version.ref = "openfga" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 r2dbc-pool = { module = "io.r2dbc:r2dbc-pool", version.ref = "r2dbc-pool" }
 r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
