@@ -60,16 +60,15 @@ class TodoListService(
      */
     suspend fun getTodoList(userId: String, id: UUID): TodoListServiceResult<TodoList> =
         coroutineBinding {
-            val todoList = todoListRepository.getById(ctx, id)
-                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
-                .bind()
             authorizationService.check(
                 userId = userId, permission = Permission.Common.CAN_READ,
-                resource = AuthorizationResource.TodoList(todoList.id)
+                resource = AuthorizationResource.TodoList(id)
             )
                 .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
                 .bind()
-            todoList
+            todoListRepository.getById(ctx, id)
+                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
+                .bind()
         }
 
     /**
@@ -101,14 +100,14 @@ class TodoListService(
             todoListForUpdate.validate()
                 .mapError { TodoListServiceError.ValidationFailed(it) }
                 .bind()
-            val todoList = todoListRepository.getById(c.dsl(), todoListForUpdate.id, lockRecords = true)
-                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(todoListForUpdate.id)) }
-                .bind()
             authorizationService.check(
                 userId = userId,
                 permission = Permission.Common.CAN_WRITE,
-                resource = AuthorizationResource.TodoList(todoList.id)
+                resource = AuthorizationResource.TodoList(todoListForUpdate.id)
             )
+                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(todoListForUpdate.id)) }
+                .bind()
+            val todoList = todoListRepository.getById(c.dsl(), todoListForUpdate.id, lockRecords = true)
                 .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(todoListForUpdate.id)) }
                 .bind()
             val updatedTodoList = todoList.toPersistenceModel().apply { update(todoListForUpdate) }
@@ -128,17 +127,16 @@ class TodoListService(
         id: UUID,
     ): TodoListServiceResult<Unit> = ctx.resultTransactionCoroutine { c ->
         coroutineBinding {
-            val todoList = todoListRepository.getById(c.dsl(), id)
-                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
-                .bind()
             authorizationService.check(
                 userId = userId,
                 permission = Permission.Common.CAN_DELETE,
-                resource = AuthorizationResource.TodoList(todoList.id)
+                resource = AuthorizationResource.TodoList(id)
             )
                 .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
                 .bind()
-            todoListRepository.delete(c, id).mapError { it.toServiceError() }.bind()
+            todoListRepository.delete(c, id)
+                .mapError { it.toServiceError(TodoListServiceError.TodoListNotFound(id)) }
+                .bind()
             authorizationService.deleteAllTuplesFor(AuthorizationResource.TodoList(id))
                 .mapError { it.toServiceError() }
                 .bind()

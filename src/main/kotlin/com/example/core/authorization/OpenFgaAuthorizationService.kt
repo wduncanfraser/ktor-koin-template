@@ -46,8 +46,10 @@ class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationS
         val clientConfig = ClientConfiguration().apiUrl(openFgaConfig.apiUrl)
         client = OpenFgaClient(clientConfig)
         authorizationModelId = runBlocking {
-            val stores = client.listStores().await().stores
-            val storeId = stores.firstOrNull { it.name == openFgaConfig.storeName }?.id
+            // Prefer an explicitly configured store id; store names are not unique, so name-based
+            // resolution (below) is only a dev/test convenience. See OpenFgaConfig.storeId.
+            val storeId = openFgaConfig.storeId?.takeIf { it.isNotBlank() }
+                ?: client.listStores().await().stores.firstOrNull { it.name == openFgaConfig.storeName }?.id
                 ?: error("OpenFGA store '${openFgaConfig.storeName}' not found — run provision before starting the app")
             clientConfig.storeId(storeId)
             val model = client.readLatestAuthorizationModel().await().authorizationModel
@@ -89,6 +91,10 @@ class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationS
         }
     }
 
+    // Every `user:$userId` here (and in the tuple-key mappers below) trusts [userId] to be a valid
+    // OpenFGA object id: no whitespace, `:`, or `#`. It's the OAuth subject (a Discord snowflake —
+    // safe). If the auth provider ever yields richer subjects, sanitize/encode them before this
+    // point, or the resulting tuples are malformed and OpenFGA rejects them.
     private suspend fun checkFga(userId: String, permission: Permission, resource: AuthorizationResource): Boolean {
         val request = ClientCheckRequest()
             .user("user:$userId")
@@ -170,6 +176,13 @@ class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationS
         }
     }
 
+    /**
+     * Not atomic: enumerates via Read then deletes via Write, chunked at OpenFGA's
+     * 100-tuple/request cap (see [deleteKeysChunked]). Callers run it alongside the DB row delete,
+     * but Postgres and OpenFGA are separate systems — a total OpenFGA failure rolls the DB delete
+     * back, while a partial failure past a chunk boundary can leave the resource half-cleaned until
+     * the (idempotent) delete is retried.
+     */
     override suspend fun deleteAllTuplesFor(resource: AuthorizationResource): Result<Unit, AuthorizationError> {
         return try {
             // Phase 1: structural links pointing AT the resource (its children's parent links) —

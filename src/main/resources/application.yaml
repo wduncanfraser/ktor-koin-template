@@ -29,3 +29,4 @@ redis:
 openfga:
   apiUrl: ${OPENFGA_APIURL:http://localhost:8081}
   storeName: ${OPENFGA_STORENAME:todo}
+  storeId: ${OPENFGA_STOREID:}

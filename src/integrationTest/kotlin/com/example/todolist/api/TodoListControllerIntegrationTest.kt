@@ -604,6 +604,30 @@ class TodoListControllerIntegrationTest : IntegrationTestBase({
             listResponse.body<ListTodosResponseContract>().data shouldHaveSize 0
         }
 
+        test("deleting a todo removes its parent_list tuple") {
+            val client = createAuthenticatedTestClient()
+
+            val list = client.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "My List"))
+            }.body<TodoListResponseContract>()
+
+            val created = client.post(todoUrl(list.id)) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoRequestContract(name = "To delete"))
+            }.body<TodoResponseContract>()
+
+            // Sanity: the todo's parent_list link exists before deletion, so the emptiness asserted
+            // afterwards is meaningful (and the read helper isn't vacuously returning nothing).
+            fgaTuplesWithUser("todo", "todo_list:${list.id}", "parent_list") shouldHaveSize 1
+
+            client.delete(todoItemUrl(list.id, created.id)).status shouldBe HttpStatusCode.NoContent
+
+            // TodoService.deleteTodo cleans up its single parent_list tuple explicitly; guard that it
+            // stays in sync (the DB row is already gone via the delete above).
+            fgaTuplesWithUser("todo", "todo_list:${list.id}", "parent_list").shouldBeEmpty()
+        }
+
         test("returns 404 when todo does not exist") {
             val client = createAuthenticatedTestClient()
 

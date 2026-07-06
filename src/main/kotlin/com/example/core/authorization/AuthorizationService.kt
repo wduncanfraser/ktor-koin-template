@@ -53,6 +53,9 @@ interface AuthorizationService {
      * the last to go — a caller is never left unable to retry because it deleted its own delete
      * permission early.
      *
+     * Whether the operation is atomic is implementation-defined; see the concrete
+     * [AuthorizationService] for its guarantees.
+     *
      * Returns [AuthorizationError.WriteFailed] if the deletion could not be completed.
      */
     suspend fun deleteAllTuplesFor(resource: AuthorizationResource): Result<Unit, AuthorizationError>

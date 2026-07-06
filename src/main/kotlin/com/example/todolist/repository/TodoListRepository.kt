@@ -106,8 +106,9 @@ class TodoListRepository {
     }
 
     /**
-     * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if nothing was deleted.
      * Cascade deletes all [com.example.todo.domain.Todo]s belonging to this list.
+     *
+     * Returns [com.example.core.repository.RepositoryError.RecordNotFound] if nothing was deleted.
      */
     suspend fun delete(
         c: Configuration,
