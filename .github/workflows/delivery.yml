@@ -18,7 +18,7 @@ jobs:
       pull-requests: write
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Run yamllint
       uses: reviewdog/action-yamllint@v1
       with:
@@ -35,7 +35,7 @@ jobs:
       pull-requests: write
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Run actionlint
       uses: reviewdog/action-actionlint@v1
       with:
@@ -50,7 +50,7 @@ jobs:
       contents: read
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Lint API contracts
       run: docker run --rm -v "$PWD":/spec redocly/cli lint --format=github-actions
 
@@ -60,7 +60,7 @@ jobs:
       contents: read
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Setup JDK
       uses: actions/setup-java@v5
       with:
@@ -79,7 +79,7 @@ jobs:
       contents: read
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Setup JDK
       uses: actions/setup-java@v5
       with:
@@ -120,7 +120,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Bundle API contracts
         run: ./contracts/build.sh
@@ -159,7 +159,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # db/dev/init-db.sh cannot be mounted via the service container's volumes: field because
       # service containers start before actions/checkout runs, so the workspace file doesn't
@@ -201,7 +201,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Setup JDK
       uses: actions/setup-java@v5
       with:
@@ -219,7 +219,7 @@ jobs:
       actions: read            # required by upload-sarif on private repos
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v4
