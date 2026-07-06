@@ -11,6 +11,7 @@ import com.example.generated.db.tables.references.TODO_LIST
 import com.example.todolist.domain.TodoList
 import com.example.todolist.domain.TodoListForSave
 import com.example.todolist.repository.mappers.TodoListMapper
+import com.github.michaelbull.result.Ok
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactive.asFlow
@@ -28,35 +29,38 @@ class TodoListRepository {
      */
     suspend fun list(
         ctx: DSLContext,
-        createdByUserId: String,
+        authorizedIds: List<UUID>,
         pageSize: Int,
         page: Int,
-    ): RepositoryResult<Page<TodoList>> = runWrappingError {
-        val conditions = TODO_LIST.CREATED_BY_USER_ID.eq(createdByUserId)
-        val totalRows = ctx.selectCount()
-            .from(TODO_LIST)
-            .where(conditions)
-            .awaitSingle()
-            .get(0, Int::class.java)
-        val totalPages = PaginationUtil.calculateTotalPages(totalRows, pageSize)
-        val offset = PaginationUtil.calculateOffset(page, pageSize)
+    ): RepositoryResult<Page<TodoList>> {
+        if (authorizedIds.isEmpty()) return Ok(PaginationUtil.emptyPage(pageSize, page))
+        return runWrappingError {
+            val conditions = TODO_LIST.ID.`in`(authorizedIds)
+            val totalRows = ctx.selectCount()
+                .from(TODO_LIST)
+                .where(conditions)
+                .awaitSingle()
+                .get(0, Int::class.java)
+            val totalPages = PaginationUtil.calculateTotalPages(totalRows, pageSize)
+            val offset = PaginationUtil.calculateOffset(page, pageSize)
 
-        val data = ctx.selectFrom(TODO_LIST)
-            .where(conditions)
-            .orderBy(TODO_LIST.CREATED_AT.asc())
-            .limit(pageSize)
-            .offset(offset)
-            .asFlow()
-            .map(TodoListMapper::toDomain)
-            .toList()
+            val data = ctx.selectFrom(TODO_LIST)
+                .where(conditions)
+                .orderBy(TODO_LIST.CREATED_AT.asc())
+                .limit(pageSize)
+                .offset(offset)
+                .asFlow()
+                .map(TodoListMapper::toDomain)
+                .toList()
 
-        Page(
-            data = data,
-            pageNumber = page,
-            pageSize = pageSize,
-            totalRows = totalRows,
-            totalPages = totalPages,
-        )
+            Page(
+                data = data,
+                pageNumber = page,
+                pageSize = pageSize,
+                totalRows = totalRows,
+                totalPages = totalPages,
+            )
+        }
     }
 
     /**

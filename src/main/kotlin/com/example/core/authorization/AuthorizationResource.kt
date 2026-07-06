@@ -27,3 +27,20 @@ sealed class AuthorizationResource {
         val todoListId: UUID,
     ) : AuthorizationResource()
 }
+
+/**
+ * Identifies a *type* of [AuthorizationResource], without an id — used by
+ * [AuthorizationService.listResourceIds] to ask "which resources of this type does the user have a
+ * [Permission] on", where a full [AuthorizationResource] would require an id that's the very thing
+ * being asked for. Every [AuthorizationResource] case has a corresponding case here.
+ */
+enum class AuthorizationResourceType {
+    TodoList,
+    Todo,
+}
+
+val AuthorizationResource.type: AuthorizationResourceType
+    get() = when (this) {
+        is AuthorizationResource.TodoList -> AuthorizationResourceType.TodoList
+        is AuthorizationResource.Todo -> AuthorizationResourceType.Todo
+    }

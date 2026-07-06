@@ -2,6 +2,7 @@ package com.example.todo.services
 
 import com.example.core.authorization.AuthorizationError
 import com.example.core.authorization.AuthorizationResource
+import com.example.core.authorization.AuthorizationResourceType
 import com.example.core.authorization.AuthorizationService
 import com.example.core.authorization.AuthorizationTuple
 import com.example.core.authorization.Permission
@@ -35,16 +36,27 @@ class TodoService(
     private val authorizationService: AuthorizationService,
 ) {
     /**
-     * Runs in a transaction to ensure list and count are consistent.
+     * Resolves the caller's authorized lists via [AuthorizationService] before opening the DB
+     * transaction below — an external call has no business holding a pooled DB connection open.
+     * The transaction exists only so the count and paged-select queries run against one consistent
+     * snapshot of the (already-resolved) authorized id set.
      */
     suspend fun listAllTodos(
-        createdByUserId: String,
+        userId: String,
         pageSize: Int,
         page: Int,
         completed: Boolean? = null,
-    ): TodoServiceResult<Page<Todo>> = ctx.resultTransactionCoroutine { c ->
-        todoRepository.listByUser(c.dsl(), createdByUserId, pageSize, page, completed)
-            .mapError { it.toServiceError() }
+    ): TodoServiceResult<Page<Todo>> = coroutineBinding {
+        val authorizedListIds = authorizationService.listResourceIds(
+            userId = userId,
+            permission = Permission.Common.CAN_READ,
+            resourceType = AuthorizationResourceType.TodoList,
+        ).mapError { it.toServiceError() }.bind()
+
+        ctx.resultTransactionCoroutine { c ->
+            todoRepository.listByAuthorizedListIds(c.dsl(), authorizedListIds, pageSize, page, completed)
+                .mapError { it.toServiceError() }
+        }.bind()
     }
 
     /**

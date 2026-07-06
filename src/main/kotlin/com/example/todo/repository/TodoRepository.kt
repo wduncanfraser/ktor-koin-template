@@ -11,6 +11,7 @@ import com.example.generated.db.tables.references.TODO
 import com.example.todo.domain.Todo
 import com.example.todo.domain.TodoForSave
 import com.example.todo.repository.mappers.TodoMapper
+import com.github.michaelbull.result.Ok
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactive.asFlow
@@ -46,14 +47,15 @@ class TodoRepository {
     /**
      * Must be called within a transaction to ensure the count and list results are consistent.
      */
-    suspend fun listByUser(
+    suspend fun listByAuthorizedListIds(
         ctx: DSLContext,
-        createdByUserId: String,
+        authorizedListIds: List<UUID>,
         pageSize: Int,
         page: Int,
         completed: Boolean? = null,
     ): RepositoryResult<Page<Todo>> {
-        var conditions = TODO.CREATED_BY_USER_ID.eq(createdByUserId)
+        if (authorizedListIds.isEmpty()) return Ok(PaginationUtil.emptyPage(pageSize, page))
+        var conditions = TODO.TODO_LIST_ID.`in`(authorizedListIds)
         if (completed == true) {
             conditions = conditions.and(TODO.COMPLETED_AT.isNotNull)
         } else if (completed == false) {

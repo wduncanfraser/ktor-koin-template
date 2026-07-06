@@ -66,8 +66,8 @@ Relation assignment (`owner`/`editor`/`viewer`) happens only at the `todo_list` 
 
 Core types (`core/authorization/`):
 
-- **`AuthorizationService`** — interface with `check`, `writeTuples`, `deleteTuples`; backed by `OpenFgaAuthorizationService`.
-- **`AuthorizationResource`** — sealed class identifying what's being checked (`TodoList`, `Todo`).
+- **`AuthorizationService`** — interface with `check`, `listResourceIds`, `writeTuples`, `deleteTuples`; backed by `OpenFgaAuthorizationService`. `listResourceIds` backs list endpoints (`GET /todo-lists`, `GET /todos`) so they return everything the caller can read via ReBAC, not just what they created; it's backed by OpenFGA's non-streamed ListObjects call, which caps its result set (commonly ~1000 objects) and calls the backend live per request — fine for this template, but a production service with a large accessible-set size should instead back this with its own denormalized index (e.g. a DB join table) kept in sync via OpenFGA's tuple-change feed (`/changes`), intersected with the normal DB query at read time.
+- **`AuthorizationResource`** — sealed class identifying what's being checked (`TodoList`, `Todo`). **`AuthorizationResourceType`** mirrors it without an id (`listResourceIds` needs a type to query, not an id it doesn't have yet).
 - **`Permission`** — sealed interface; `Permission.Common` (`CAN_READ`/`CAN_WRITE`/`CAN_DELETE`) covers the relations every resource type defines. Feature-specific permissions (e.g. `can_share`) would implement `Permission` directly.
 - **`AuthorizationTuple`** — `UserRelation` (user → resource, e.g. owner) or `ResourceRelation` (resource → resource, e.g. a todo's `parent_list` link).
 - **`AuthorizationError`** — `NotFound` (404, no access at all) vs `Forbidden` (403, can view but lacks the specific permission); `check` distinguishes these by falling back to a `CAN_READ` check when the requested permission is denied. `WriteFailed` means a `writeTuples`/`deleteTuples` call itself failed — an infrastructure error, not a permission outcome.

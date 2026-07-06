@@ -1,6 +1,7 @@
 package com.example.core.authorization
 
 import com.github.michaelbull.result.Result
+import java.util.UUID
 
 /**
  * Authorization boundary for checking permissions and managing relationship tuples. [check]
@@ -26,6 +27,21 @@ interface AuthorizationService {
     ): Result<Unit, AuthorizationError>
 
     /**
+     * Lists the ids of every [AuthorizationResource] of [resourceType] that [userId] has
+     * [permission] on — e.g. every resource a user can read, including ones shared with them, not
+     * just ones they created.
+     *
+     * Returns an empty list (not an error) if the user has [permission] on nothing; there is no single resource here
+     * whose access could be [AuthorizationError.NotFound]/[AuthorizationError.Forbidden].
+     * Returns [AuthorizationError.CheckFailed] if the query itself could not be completed.
+     */
+    suspend fun listResourceIds(
+        userId: String,
+        permission: Permission,
+        resourceType: AuthorizationResourceType,
+    ): Result<List<UUID>, AuthorizationError>
+
+    /**
      * Writes relationship tuples to the authorization store.
      * Called on resource creation to assign ownership and structural links.
      */
@@ -43,10 +59,10 @@ interface AuthorizationService {
  *
  * [NotFound] maps to 404 — the resource appears not to exist (user has no viewer access or higher).
  * [Forbidden] maps to 403 — the user can view the resource but lacks permission for this action.
- * [CheckFailed] means [AuthorizationService.check] itself could not be completed (e.g. an
- * infrastructure outage, or a relation/type combination not defined in the backing model) — this is
- * an infrastructure/configuration failure, not a permission outcome, and must not be treated as "no
- * access".
+ * [CheckFailed] means [AuthorizationService.check] or [AuthorizationService.listResourceIds] itself
+ * could not be completed (e.g. an infrastructure outage, or a relation/type combination not defined
+ * in the backing model) — this is an infrastructure/configuration failure, not a permission outcome,
+ * and must not be treated as "no access".
  * [WriteFailed] indicates [AuthorizationService.writeTuples] or [AuthorizationService.deleteTuples]
  * failed — this is an infrastructure failure, not a permission outcome.
  */

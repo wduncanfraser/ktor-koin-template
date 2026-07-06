@@ -14,6 +14,7 @@ import com.example.generated.api.models.TodoResponseContract
 import com.example.generated.api.models.UpdateTodoListRequestContract
 import com.example.generated.api.models.UpdateTodoRequestContract
 import io.kotest.assertions.assertSoftly
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -640,6 +641,35 @@ class TodoListControllerIntegrationTest : IntegrationTestBase({
             responseB.status shouldBe HttpStatusCode.OK
             responseA.body<ListTodoListsResponseContract>().data shouldHaveSize 2
             responseB.body<ListTodoListsResponseContract>().data shouldHaveSize 1
+        }
+
+        test("listTodoLists includes lists shared with, not just created by, the authenticated user") {
+            val clientA = createAuthenticatedTestClient()
+            val clientB = createAuthenticatedTestClient(secondTestSession())
+            val authorizationService = application.get<AuthorizationService>()
+
+            val listA = clientA.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "User A list"))
+            }.body<TodoListResponseContract>()
+            clientB.post(todoListsUrl()) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTodoListRequestContract(name = "User B list"))
+            }
+
+            authorizationService.writeTuples(listOf(
+                AuthorizationTuple.UserRelation(
+                    "test-user-id-2", "viewer", AuthorizationResource.TodoList(UUID.fromString(listA.id)),
+                )
+            ))
+
+            val responseB = clientB.get(todoListsUrl())
+
+            responseB.status shouldBe HttpStatusCode.OK
+            val namesB = responseB.body<ListTodoListsResponseContract>().data.map { it.name }
+            namesB shouldHaveSize 2
+            namesB shouldContain "User A list"
+            namesB shouldContain "User B list"
         }
 
         test("other user cannot access another user's list or its todos") {
