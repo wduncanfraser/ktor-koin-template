@@ -5,7 +5,6 @@ import com.example.authn.OAuthProcessingException
 import com.example.authn.RedisSessionStorage
 import com.example.authn.UserSession
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.CancellationException
 import io.ktor.client.*
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -14,8 +13,8 @@ import io.ktor.server.config.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
-import io.ktor.util.*
 import io.lettuce.core.api.StatefulRedisConnection
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import org.koin.ktor.ext.inject
 
@@ -33,7 +32,7 @@ fun Application.configureSecurity(authConfig: AuthenticationConfig) {
     val sessionStorage = RedisSessionStorage(redisConnection)
 
     install(Sessions) {
-        val secretSignKey = hex(authConfig.sessionSigningKey)
+        val secretSignKey = authConfig.sessionSigningKey.hexToByteArray()
         cookie<UserSession>(
             name = authConfig.sessionCookieName,
             storage = sessionStorage,

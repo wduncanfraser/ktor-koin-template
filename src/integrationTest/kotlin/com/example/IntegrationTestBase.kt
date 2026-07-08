@@ -25,7 +25,6 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.sessions.*
 import io.ktor.server.testing.*
-import io.ktor.util.*
 import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.coroutines.future.await
 import kotlinx.serialization.json.Json
@@ -124,7 +123,7 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
         val storage = RedisSessionStorage(redisConnection)
         val sessionId = UUID.randomUUID().toString()
         storage.write(sessionId, Json.encodeToString(session))
-        val transformer = SessionTransportTransformerMessageAuthentication(hex(TEST_SESSION_SIGNING_KEY))
+        val transformer = SessionTransportTransformerMessageAuthentication(TEST_SESSION_SIGNING_KEY.hexToByteArray())
         val signedCookieValue = transformer.transformWrite(sessionId)
         return testApp.createClient {
             install(ContentNegotiation) { json() }
@@ -164,7 +163,7 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
         fgaClient?.let { return it }
         val config = ClientConfiguration().apiUrl("http://${openfga.host}:${openfga.getMappedPort(OPENFGA_PORT)}")
         val client = OpenFgaClient(config)
-        val storeId = client.listStores().await().stores.orEmpty().firstOrNull { it.name == "todo" }?.id
+        val storeId = client.listStores().await().stores.firstOrNull { it.name == "todo" }?.id
             ?: error("OpenFGA store 'todo' not found")
         config.storeId(storeId)
         return client.also { fgaClient = it }
