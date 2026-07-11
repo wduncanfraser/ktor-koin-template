@@ -181,3 +181,13 @@ Re-run these after changing the OpenAPI spec or DB schema respectively.
 The OpenAPI source lives in `contracts/todo/` as a multi-file spec (paths, schemas, parameters split into individual files). `src/main/resources/openapi/todo.yaml` is the committed bundle output — do not edit it directly.
 
 After changing the contract source files, run `./contracts/build.sh` to rebundle, then `./gradlew generateApi` to regenerate Kotlin code.
+
+## Continuous Integration
+
+CI runs in `.github/workflows/delivery.yml` (lint, tests, codegen verification, Docker build + Trivy scan), gated by the `required-pr-checks` status.
+
+Merges are serialized through a [Mergify](https://mergify.com/) merge queue (`.mergify.yml`): each PR is re-tested against the latest `main` before it lands, so concurrently-green PRs can't break `main` or drift `gradle.lockfile`. Dependabot PRs queue automatically once green; other PRs queue after one approval.
+
+Dependabot bumps `gradle/libs.versions.toml` but not `gradle.lockfile`, so `.github/workflows/dependabot-lockfile.yml` regenerates the lockfile on Dependabot PRs and commits it back.
+
+**Forking this template:** the merge queue requires the Mergify GitHub App to be installed on your repo — install it from the [GitHub Marketplace](https://github.com/marketplace/mergify) and grant it access. Without it, `.mergify.yml` is inert and PRs merge manually.
