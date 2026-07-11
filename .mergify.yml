@@ -6,14 +6,28 @@ queue_rules:
   # off because combining two Dependabot PRs produces a merged gradle.lockfile
   # that isn't regenerated on Mergify's speculative branch and would fail CI.
   batch_size: 1
-  # queue_conditions gate automatic entry into the queue: only Dependabot PRs
-  # auto-queue once CI is green. Other PRs must be queued manually (via the
-  # `@Mergifyio queue` command or the Mergify dashboard).
+  # Routing only: any PR targeting main may enter this queue (so non-Dependabot
+  # PRs can be queued manually with `@Mergifyio queue`). Automatic entry is gated
+  # separately by merge_protections_settings.auto_merge_conditions below.
   queue_conditions:
-  - author=dependabot[bot]
-  - check-success=required-pr-checks
-  - check-success=codecov/patch
-  # merge_conditions are re-checked on the speculative branch before merging.
+  - base=main
+  # Re-checked on the speculative branch (PR + latest main) before merging.
   merge_conditions:
   - check-success=required-pr-checks
   - check-success=codecov/patch
+
+# Gate that auto-merge waits on: a PR is only auto-queued once these pass.
+merge_protections:
+- name: CI must pass
+  if:
+  - base=main
+  success_conditions:
+  - check-success=required-pr-checks
+  - check-success=codecov/patch
+
+merge_protections_settings:
+  # Audience for automatic queueing: only Dependabot. Everyone else queues
+  # manually. Combined with merge_protections above, Dependabot PRs auto-queue
+  # once CI is green.
+  auto_merge_conditions:
+  - author=dependabot[bot]
