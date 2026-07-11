@@ -1,0 +1,47 @@
+---
+name: Dependabot Lockfile
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  update-lockfile:
+    # Only run for Dependabot PRs; other PRs regenerate the lockfile locally.
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    runs-on: ubuntu-24.04
+
+    steps:
+    # Check out with a PAT (stored as a Dependabot secret) rather than the
+    # default GITHUB_TOKEN: a push authenticated with GITHUB_TOKEN does not
+    # re-trigger the Delivery workflow, so the required PR checks would never
+    # re-run against the regenerated lockfile.
+    - uses: actions/checkout@v7
+      with:
+        ref: ${{ github.head_ref }}
+        token: ${{ secrets.DEPENDABOT_LOCKFILE_TOKEN }}
+
+    - name: Setup JDK
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'temurin'
+        java-version: 25
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+
+    - name: Regenerate lockfile
+      run: ./gradlew dependencies --write-locks
+
+    - name: Commit and push lockfile changes
+      run: |
+        if git diff --quiet -- gradle.lockfile settings-gradle.lockfile; then
+          echo "Lockfile already up to date; nothing to commit."
+          exit 0
+        fi
+        git config user.name "dependabot[bot]"
+        git config user.email "49699333+dependabot[bot]@users.noreply.github.com"
+        git add gradle.lockfile settings-gradle.lockfile
+        git commit -m "Regenerate gradle lockfile"
+        git push
