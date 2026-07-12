@@ -80,8 +80,20 @@ dependencies {
     // OpenFGA
     implementation(libs.openfga.sdk)
 
-    // Transitive dependency bumps for CVE fixes
+    // Transitive dependency bumps for CVE fixes. These packages are pulled in
+    // transitively (Netty via Ktor/Lettuce/R2DBC/OpenFGA, Jackson via the OpenFGA
+    // SDK, SCRAM via the Postgres driver, OpenTelemetry via Micrometer) and are not
+    // used directly; the pins force
+    // patched versions to clear Dependabot alerts that can't be fixed by bumping a
+    // direct dependency.
     implementation(enforcedPlatform(libs.netty.bom))
+    implementation(enforcedPlatform(libs.jackson.bom))
+    implementation(enforcedPlatform(libs.opentelemetry.bom))
+    constraints {
+        // GHSA-p9jg-fcr6-3mhf: SCRAM channel-binding auth downgrade (fixed > 3.2)
+        implementation(libs.scram.client) { because("CVE fix GHSA-p9jg-fcr6-3mhf") }
+        implementation(libs.scram.common) { because("CVE fix GHSA-p9jg-fcr6-3mhf") }
+    }
 }
 
 kotlin {
