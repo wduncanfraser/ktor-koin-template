@@ -17,11 +17,18 @@ ktor = "3.5.1"
 lettuce = "7.6.0.RELEASE"
 logback = "1.5.38"
 micrometer = "1.17.0"
-netty = "4.2.16.Final"
 postgresql = "42.7.13" # Used in code generation tasks only
 r2dbc-pool = "1.0.2.RELEASE"
 r2dbc-postgresql = "1.1.2.RELEASE"
 testcontainers = "2.0.5"
+
+# Transitive-only pins for CVE remediation. These packages are not used directly;
+# they are forced to patched versions via enforcedPlatform/constraints in
+# build.gradle.kts. Declared here so Dependabot keeps them updated going forward.
+jackson = "2.21.5"
+netty = "4.2.16.Final"
+opentelemetry = "1.64.0"
+scram = "3.4"
 
 [libraries]
 cohort-ktor = { module = "com.sksamuel.cohort:cohort-ktor", version.ref = "cohort" }
@@ -65,13 +72,19 @@ ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref 
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
-netty-bom = { module = "io.netty:netty-bom", version.ref = "netty" }
 openfga-sdk = { module = "dev.openfga:openfga-sdk", version.ref = "openfga" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 r2dbc-pool = { module = "io.r2dbc:r2dbc-pool", version.ref = "r2dbc-pool" }
 r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql", version.ref = "testcontainers" }
+
+# Transitive-only pins for CVE remediation (see the [versions] note above)
+jackson-bom = { module = "com.fasterxml.jackson:jackson-bom", version.ref = "jackson" }
+netty-bom = { module = "io.netty:netty-bom", version.ref = "netty" }
+opentelemetry-bom = { module = "io.opentelemetry:opentelemetry-bom", version.ref = "opentelemetry" }
+scram-client = { module = "com.ongres.scram:scram-client", version.ref = "scram" }
+scram-common = { module = "com.ongres.scram:scram-common", version.ref = "scram" }
 
 [bundles]
 cohort = [
