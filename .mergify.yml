@@ -26,8 +26,10 @@ merge_protections:
   - check-success=codecov/patch
 
 merge_protections_settings:
-  # Audience for automatic queueing: only Dependabot. Everyone else queues
-  # manually. Combined with merge_protections above, Dependabot PRs auto-queue
-  # once CI is green.
+  # Audience for automatic queueing: only non-major Dependabot bumps. Major
+  # version bumps (and any non-Dependabot PR) must be queued manually with
+  # `@Mergifyio queue`. Combined with merge_protections above, matching PRs
+  # auto-queue once CI is green.
   auto_merge_conditions:
   - author=dependabot[bot]
+  - dependabot-update-type!=version-update:semver-major
