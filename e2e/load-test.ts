@@ -32,7 +32,7 @@ export default function() {
       { tags: { name: "CreateTodoListURL" } }
   );
   check(createListResponse.response,
-      { "Create list status is 200": (res) => res.status === 200 }
+      { "Create list status is 201": (res) => res.status === 201 }
   );
   const listId = createListResponse.data.id;
 
@@ -72,7 +72,7 @@ export default function() {
       { tags: { name: "CreateTodoURL" } }
   );
   check(createTodoResponse.response,
-      { "Create todo status is 200": (res) => res.status === 200 }
+      { "Create todo status is 201": (res) => res.status === 201 }
   );
   const todoId = createTodoResponse.data.id;
 
