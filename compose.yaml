@@ -34,7 +34,7 @@ services:
     ports:
     - "8081:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      test: ["CMD", "/usr/local/bin/grpc_health_probe", "-addr=:8081"]
       interval: 1s
       timeout: 5s
       retries: 10
