@@ -17,19 +17,19 @@ jobs:
     # default GITHUB_TOKEN: a push authenticated with GITHUB_TOKEN does not
     # re-trigger the Delivery workflow, so the required PR checks would never
     # re-run against the regenerated lockfile.
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         ref: ${{ github.head_ref }}
         token: ${{ secrets.DEPENDABOT_LOCKFILE_TOKEN }}
 
     - name: Setup JDK
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
       with:
         distribution: 'temurin'
         java-version: 25
 
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v6
+      uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
     - name: Regenerate lockfile
       run: ./gradlew dependencies --write-locks
