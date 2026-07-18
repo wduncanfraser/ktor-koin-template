@@ -25,7 +25,7 @@ testcontainers = "2.0.5"
 # Transitive-only pins for CVE remediation. These packages are not used directly;
 # they are forced to patched versions via enforcedPlatform/constraints in
 # build.gradle.kts. Declared here so Dependabot keeps them updated going forward.
-jackson = "2.21.5"
+jackson = "2.22.1"
 netty = "4.2.16.Final"
 opentelemetry = "1.64.0"
 scram = "3.4"
