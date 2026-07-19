@@ -25,7 +25,7 @@ Integration tests use Testcontainers (PostgreSQL + Valkey + OpenFGA + dbmate for
 
 ```bash
 # Start dependencies (DB, Valkey, OpenFGA, run migrations)
-docker compose up db valkey dbmate openfga fga-provision
+docker compose up db valkey dbmate openfga-migrate openfga fga-provision
 
 # Run the app
 ./gradlew run
@@ -61,7 +61,7 @@ Or run the full stack with `docker compose up`. App starts on `http://localhost:
 
 ### Authorization (OpenFGA / ReBAC)
 
-Access control is relationship-based (ReBAC) via [OpenFGA](https://openfga.dev/), not ownership columns in the database. `fga/authorization-model.fga` is the source of truth for the model — read it directly. The README's Authorization section covers the conceptual model and the production-scaling caveats; this section is the in-code reference. The store/model are provisioned by the `fga-provision` service in `docker compose up`, and by equivalent Testcontainers in integration tests (`IntegrationTestBase`).
+Access control is relationship-based (ReBAC) via [OpenFGA](https://openfga.dev/), not ownership columns in the database. `fga/authorization-model.fga` is the source of truth for the model — read it directly. The README's Authorization section covers the conceptual model and the production-scaling caveats; this section is the in-code reference. The store/model are provisioned by the `fga-provision` service in `docker compose up`, and by equivalent Testcontainers in integration tests (`IntegrationTestBase`). In compose, OpenFGA persists to Postgres (its own `openfga` database via `db/dev/init-db.sh`); `openfga-migrate` creates OpenFGA's schema and `fga-provision` (`fga/provision/`) is idempotent — it creates the `todo` store only if absent, so repeated `up` doesn't duplicate stores.
 
 Relations (`owner`/`editor`/`viewer`) are assigned only at the `todo_list` level; a `todo` inherits `can_read`/`can_write`/`can_delete` from its parent list and can't be shared independently. Adding per-todo sharing is a pure model change (add relations to `type todo`, union with the inherited ones) — no service code changes, since checks already scope to the specific `AuthorizationResource` and tuple writes are generic.
 

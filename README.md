@@ -104,6 +104,8 @@ List endpoints (`GET /todo-lists`, `GET /todos`) use `listResourceIds` to fetch 
 
 The OpenFGA store and model are provisioned automatically — by the `fga-provision` service in `docker compose up`, and by equivalent Testcontainers in integration tests. The app resolves its store by name (`OPENFGA_STORENAME`) for local/dev convenience; because OpenFGA store names are not unique, set `OPENFGA_STOREID` to pin an exact store in any shared environment.
 
+In `docker compose`, OpenFGA persists to the shared Postgres instance (its own `openfga` database, created by `db/dev/init-db.sh`) so stores, models, and tuples survive `docker compose down`/`up`. The `openfga-migrate` service creates OpenFGA's schema, and `fga-provision` is idempotent — it creates the `todo` store + model only if one doesn't already exist, so repeated `up` never spawns a duplicate store. Integration tests still use an ephemeral in-memory OpenFGA per run.
+
 ## Observability
 
 Three signals: **metrics** on Micrometer → Prometheus (`/metrics`), **health** on Cohort (`/health`), and **distributed tracing** on OpenTelemetry. Traces and logs cross-correlate — every log line carries the active `trace_id` (see `logback.xml`), so a trace leads straight to its logs and back.
@@ -169,7 +171,7 @@ Docker must be running for integration tests.
 
 ```bash
 # Start dependencies (DB, Redis, OpenFGA, run migrations)
-docker compose up db valkey dbmate openfga fga-provision
+docker compose up db valkey dbmate openfga-migrate openfga fga-provision
 
 # Run the app
 ./gradlew run
