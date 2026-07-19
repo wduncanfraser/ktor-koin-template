@@ -29,10 +29,28 @@ services:
       fga-provision:
         condition: service_completed_successfully
 
+  # One-shot: create/upgrade OpenFGA's schema in the openfga database. Idempotent, safe every up.
+  openfga-migrate:
+    image: openfga/openfga:latest
+    command: migrate
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: postgres://openfga:openfga@db:5432/openfga?sslmode=disable
+    networks:
+    - ktor-koin-template
+    depends_on:
+      db:
+        condition: service_healthy
+
   openfga:
     image: openfga/openfga:latest
     command: run
     restart: unless-stopped
+    # Persist to the shared Postgres instance (openfga database) so stores/models/tuples survive
+    # `docker compose down`/`up`. The openfga database is created by db/dev/init-db.sh.
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: postgres://openfga:openfga@db:5432/openfga?sslmode=disable
     ports:
     - "8081:8080"
     healthcheck:
@@ -42,10 +60,15 @@ services:
       retries: 10
     networks:
     - ktor-koin-template
+    depends_on:
+      db:
+        condition: service_healthy
+      openfga-migrate:
+        condition: service_completed_successfully
 
+  # Idempotent: creates the "todo" store + model only if it doesn't already exist (see fga/provision).
   fga-provision:
-    image: openfga/cli:latest
-    command: ["store", "create", "--api-url", "http://openfga:8080", "--name", "todo", "--model", "/model/authorization-model.fga"]
+    build: ./fga/provision
     volumes:
     - ./fga:/model
     networks:
@@ -82,7 +105,7 @@ services:
     - ktor-koin-template
     volumes:
     - ./db/dev/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
-    - db_data:/var/lib/postgresql/data
+    - db_data:/var/lib/postgresql
 
   valkey:
     image: valkey/valkey:8.1-alpine
