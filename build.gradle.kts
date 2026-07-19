@@ -17,6 +17,19 @@ version = "0.1.0"
 
 application {
     mainClass = "io.ktor.server.netty.EngineMain"
+    // Workaround for KTOR-6802 (see also opentelemetry-java-instrumentation#16430 / #11101): Ktor's
+    // SuspendFunctionGun pipeline optimization leaks the coroutine ThreadLocal on the Netty engine,
+    // so KtorServerTelemetry drops SERVER spans and grafts independent requests onto one trace.
+    // Disabling SFG fixes it with no measurable throughput cost (benchmarked). Remove once KTOR-6802
+    // is fixed upstream. Mirrored in the Dockerfile ENTRYPOINT and the test tasks (see below), and
+    // guarded by TracingLeakNettyTest.
+    applicationDefaultJvmArgs = listOf("-Dio.ktor.internal.disable.sfg=true")
+}
+
+// Match the runtime JVM arg above in tests so CI exercises the same configuration and
+// TracingLeakNettyTest (which fails if the leak returns) guards the workaround. See application {}.
+tasks.withType<Test>().configureEach {
+    systemProperty("io.ktor.internal.disable.sfg", "true")
 }
 
 repositories {
@@ -80,12 +93,13 @@ dependencies {
     // OpenFGA
     implementation(libs.openfga.sdk)
 
+    // Tracing (OpenTelemetry)
+    implementation(platform(libs.opentelemetry.instrumentation.bom.alpha))
+    implementation(libs.bundles.opentelemetry)
+
     // Transitive dependency bumps for CVE fixes. These packages are pulled in
     // transitively (Netty via Ktor/Lettuce/R2DBC/OpenFGA, Jackson via the OpenFGA
-    // SDK, SCRAM via the Postgres driver, OpenTelemetry via Micrometer) and are not
-    // used directly; the pins force
-    // patched versions to clear Dependabot alerts that can't be fixed by bumping a
-    // direct dependency.
+    // SDK, SCRAM via the Postgres driver) and are not used directly.
     implementation(enforcedPlatform(libs.netty.bom))
     implementation(enforcedPlatform(libs.jackson.bom))
     implementation(enforcedPlatform(libs.opentelemetry.bom))
@@ -125,6 +139,8 @@ testing {
                 implementation.bundle(libs.bundles.kotest)
                 implementation.bundle(libs.bundles.testcontainers)
                 implementation(libs.ktor.server.test.host)
+                // In-memory span exporter for asserting trace nesting (see TracingIntegrationTest)
+                implementation(libs.opentelemetry.sdk.testing)
                 // JDBC driver needed for test table truncation in beforeEach
                 runtimeOnly(libs.postgresql)
             }

@@ -1,6 +1,8 @@
 package com.example
 
 import com.github.michaelbull.result.Result
+import io.opentelemetry.context.Context
+import io.opentelemetry.extension.kotlin.asContextElement
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactor.mono
@@ -32,9 +34,14 @@ private class ResultRollbackException(val result: Any?) : Throwable()
 suspend fun <T : Result<*, *>> DSLContext.resultTransactionCoroutine(
     transactional: suspend (Configuration) -> T,
 ): T {
+    // `mono` starts a fresh coroutine that doesn't inherit the caller's context, which would drop
+    // the current OpenTelemetry span — orphaning every DB/Redis/OpenFGA span emitted inside the
+    // transaction into its own trace. Capture the active context and reinstate it so those spans
+    // nest under the request span. See TracingIntegrationTest.
+    val otelContext = Context.current()
     return try {
         transactionPublisher { trx ->
-            mono(Dispatchers.Unconfined) {
+            mono(Dispatchers.Unconfined + otelContext.asContextElement()) {
                 val result = transactional(trx)
                 if (result.isErr) {
                     throw ResultRollbackException(result)
