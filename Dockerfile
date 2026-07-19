@@ -28,5 +28,8 @@ RUN mkdir /app
 USER ${SERVICE_USER}
 COPY --from=build /home/gradle/src/build/libs/*.jar /app/ktor-koin-template.jar
 # TODO: Track Netty changes to support Java 25 native access https://github.com/netty/netty/issues/15404
-ENTRYPOINT ["java", "--enable-native-access=ALL-UNNAMED", "-jar","/app/ktor-koin-template.jar"]
+# -Dio.ktor.internal.disable.sfg=true: workaround for KTOR-6802 (Ktor SuspendFunctionGun leaks the
+# coroutine ThreadLocal on Netty, breaking OpenTelemetry server-span tracing). Mirrors the app JVM
+# arg in build.gradle.kts. Remove once KTOR-6802 is fixed upstream.
+ENTRYPOINT ["java", "--enable-native-access=ALL-UNNAMED", "-Dio.ktor.internal.disable.sfg=true", "-jar","/app/ktor-koin-template.jar"]
 EXPOSE 8080

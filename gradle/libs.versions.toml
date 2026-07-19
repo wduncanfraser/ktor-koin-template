@@ -17,6 +17,7 @@ ktor = "3.5.1"
 lettuce = "7.6.0.RELEASE"
 logback = "1.5.38"
 micrometer = "1.17.0"
+opentelemetry-instrumentation = "2.29.0-alpha"
 postgresql = "42.7.13" # Used in code generation tasks only
 r2dbc-pool = "1.0.2.RELEASE"
 r2dbc-postgresql = "1.1.2.RELEASE"
@@ -73,6 +74,16 @@ lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
 openfga-sdk = { module = "dev.openfga:openfga-sdk", version.ref = "openfga" }
+opentelemetry-instrumentation-bom-alpha = { module = "io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom-alpha", version.ref = "opentelemetry-instrumentation" }
+opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk" }
+opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp" }
+opentelemetry-sdk-extension-autoconfigure = { module = "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure" }
+opentelemetry-extension-kotlin = { module = "io.opentelemetry:opentelemetry-extension-kotlin" }
+opentelemetry-ktor = { module = "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0" }
+opentelemetry-r2dbc = { module = "io.opentelemetry.instrumentation:opentelemetry-r2dbc-1.0" }
+opentelemetry-lettuce = { module = "io.opentelemetry.instrumentation:opentelemetry-lettuce-5.1" }
+opentelemetry-logback-mdc = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0" }
+opentelemetry-sdk-testing = { module = "io.opentelemetry:opentelemetry-sdk-testing" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 r2dbc-pool = { module = "io.r2dbc:r2dbc-pool", version.ref = "r2dbc-pool" }
 r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
@@ -125,6 +136,17 @@ ktor-client = [
     "ktor-client-content-negotiation",
     "ktor-client-core",
     "ktor-client-logging",
+]
+
+opentelemetry = [
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp",
+    "opentelemetry-sdk-extension-autoconfigure",
+    "opentelemetry-extension-kotlin",
+    "opentelemetry-ktor",
+    "opentelemetry-r2dbc",
+    "opentelemetry-lettuce",
+    "opentelemetry-logback-mdc",
 ]
 
 ktor-server = [

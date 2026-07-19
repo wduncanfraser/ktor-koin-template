@@ -26,6 +26,7 @@ import io.ktor.server.application.*
 import io.ktor.server.sessions.*
 import io.ktor.server.testing.*
 import io.lettuce.core.api.StatefulRedisConnection
+import io.opentelemetry.api.OpenTelemetry
 import kotlinx.coroutines.future.await
 import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.get
@@ -47,6 +48,11 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
 
     val application: Application get() = testApp.application
 
+    /**
+     * Overridable so a test can inject an in-memory-exporter SDK to assert on spans.
+     */
+    protected open val openTelemetry: OpenTelemetry = OpenTelemetry.noop()
+
     init {
         body()
     }
@@ -55,37 +61,13 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
         super.beforeSpec(spec)
         testApp = TestApplication {
             application {
-                val databaseConfig = DatabaseConfig(
-                    url = "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(POSTGRESQL_PORT)}" +
-                        "/${postgres.databaseName}",
-                    user = postgres.username,
-                    password = postgres.password,
-                    poolSize = 5,
-                )
-                val redisConfig = RedisConfig(
-                    host = valkey.host,
-                    port = valkey.getMappedPort(REDIS_PORT),
-                )
-                val authConfig = AuthenticationConfig(
-                    sessionCookieName = TEST_SESSION_COOKIE_NAME,
-                    sessionSigningKey = TEST_SESSION_SIGNING_KEY,
-                    oAuth = OAuthConfig(
-                        callbackUrl = "",
-                        clientId = "",
-                        clientSecret = "",
-                        postLoginRedirectUrl = ""
-                    )
-                )
-                val openFgaConfig = OpenFgaConfig(
-                    apiUrl = "http://${openfga.host}:${openfga.getMappedPort(OPENFGA_PORT)}",
-                    storeName = "todo",
-                )
                 integrationTestModule(
-                    databaseConfig = databaseConfig,
-                    redisConfig = redisConfig,
-                    openFgaConfig = openFgaConfig,
-                    authConfig = authConfig,
+                    databaseConfig = databaseConfig(),
+                    redisConfig = redisConfig(),
+                    openFgaConfig = openFgaConfig(),
+                    authConfig = testAuthConfig(),
                     corsConfig = CorsConfig(allowedHosts = "localhost:5173"),
+                    openTelemetry = openTelemetry,
                 )
             }
         }
@@ -120,11 +102,7 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
         configure: HttpClientConfig<*>.() -> Unit = {}
     ): HttpClient {
         val redisConnection = testApp.application.get<StatefulRedisConnection<String, String>>()
-        val storage = RedisSessionStorage(redisConnection)
-        val sessionId = UUID.randomUUID().toString()
-        storage.write(sessionId, Json.encodeToString(session))
-        val transformer = SessionTransportTransformerMessageAuthentication(TEST_SESSION_SIGNING_KEY.hexToByteArray())
-        val signedCookieValue = transformer.transformWrite(sessionId)
+        val signedCookieValue = writeSignedSessionCookie(redisConnection, session)
         return testApp.createClient {
             install(ContentNegotiation) { json() }
             install(Logging) {
@@ -175,7 +153,7 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
         private val DATABASE_TABLES = listOf("todo", "todo_list")
         private const val REDIS_PORT = 6379
         private const val OPENFGA_PORT = 8080
-        private const val TEST_SESSION_SIGNING_KEY = "0101010101010101010101010101010101010101010101010101010101010101"
+        const val TEST_SESSION_SIGNING_KEY = "0101010101010101010101010101010101010101010101010101010101010101"
         const val TEST_SESSION_COOKIE_NAME = "test-session-cookie"
 
         val testNetwork: Network = Network.newNetwork()
@@ -228,6 +206,40 @@ abstract class IntegrationTestBase(body: IntegrationTestBase.() -> Unit = {}) : 
             )
             withCommand("--wait", "--wait-timeout", "10s", "migrate", "--strict")
             withStartupCheckStrategy(OneShotStartupCheckStrategy().withTimeout(Duration.ofSeconds(5)))
+        }
+
+        // Config factories mapping the shared containers to app config, reused by this base's
+        // TestApplication and by real-engine tests (e.g. TracingLeakNettyTest) so they can't drift.
+        fun databaseConfig(poolSize: Int = 5) = DatabaseConfig(
+            url = "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(POSTGRESQL_PORT)}" +
+                "/${postgres.databaseName}",
+            user = postgres.username,
+            password = postgres.password,
+            poolSize = poolSize,
+        )
+
+        fun redisConfig() = RedisConfig(host = valkey.host, port = valkey.getMappedPort(REDIS_PORT))
+
+        fun openFgaConfig() = OpenFgaConfig(
+            apiUrl = "http://${openfga.host}:${openfga.getMappedPort(OPENFGA_PORT)}",
+            storeName = "todo",
+        )
+
+        fun testAuthConfig() = AuthenticationConfig(
+            sessionCookieName = TEST_SESSION_COOKIE_NAME,
+            sessionSigningKey = TEST_SESSION_SIGNING_KEY,
+            oAuth = OAuthConfig(callbackUrl = "", clientId = "", clientSecret = "", postLoginRedirectUrl = ""),
+        )
+
+        /** Writes [session] to Redis via [connection] and returns the signed session-cookie value. */
+        suspend fun writeSignedSessionCookie(
+            connection: StatefulRedisConnection<String, String>,
+            session: UserSession = defaultTestSession(),
+        ): String {
+            val sessionId = UUID.randomUUID().toString()
+            RedisSessionStorage(connection).write(sessionId, Json.encodeToString(session))
+            return SessionTransportTransformerMessageAuthentication(TEST_SESSION_SIGNING_KEY.hexToByteArray())
+                .transformWrite(sessionId)
         }
 
         fun defaultTestSession() = UserSession(

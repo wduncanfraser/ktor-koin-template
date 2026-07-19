@@ -10,6 +10,8 @@ import io.lettuce.core.metrics.MicrometerCommandLatencyRecorder
 import io.lettuce.core.metrics.MicrometerOptions
 import io.lettuce.core.resource.ClientResources
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.instrumentation.lettuce.v5_1.LettuceTelemetry
 import kotlinx.serialization.Serializable
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -34,6 +36,7 @@ data class RedisConfig(
 
 fun Application.buildRedisClient(redisConfig: RedisConfig): RedisClient {
     val prometheusRegistry by inject<PrometheusMeterRegistry>()
+    val openTelemetry by inject<OpenTelemetry>()
 
     val redisUri = RedisURI.Builder
         .redis(redisConfig.host, redisConfig.port)
@@ -50,6 +53,8 @@ fun Application.buildRedisClient(redisConfig: RedisConfig): RedisClient {
 
     val clientResources = ClientResources.builder()
         .commandLatencyRecorder(MicrometerCommandLatencyRecorder(prometheusRegistry, micrometerOptions))
+        // Emit a client span per Redis command, parented to the current request span.
+        .tracing(LettuceTelemetry.create(openTelemetry).createTracing())
         .build()
 
     return RedisClient.create(clientResources, redisUri).apply {

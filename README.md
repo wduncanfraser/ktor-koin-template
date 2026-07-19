@@ -37,6 +37,7 @@ An opinionated Ktor template for async Kotlin web services. Encodes an API-first
 
 - Cohort — health checks (`/health`)
 - Micrometer + Prometheus (`/metrics`)
+- OpenTelemetry — distributed tracing (OTLP)
 - Logback + kotlin-logging
 
 **Testing**
@@ -103,6 +104,35 @@ List endpoints (`GET /todo-lists`, `GET /todos`) use `listResourceIds` to fetch 
 
 The OpenFGA store and model are provisioned automatically — by the `fga-provision` service in `docker compose up`, and by equivalent Testcontainers in integration tests. The app resolves its store by name (`OPENFGA_STORENAME`) for local/dev convenience; because OpenFGA store names are not unique, set `OPENFGA_STOREID` to pin an exact store in any shared environment.
 
+## Observability
+
+Three signals: **metrics** on Micrometer → Prometheus (`/metrics`), **health** on Cohort (`/health`), and **distributed tracing** on OpenTelemetry. Traces and logs cross-correlate — every log line carries the active `trace_id` (see `logback.xml`), so a trace leads straight to its logs and back.
+
+Tracing is set up in `config/Tracing.kt`. A single `OpenTelemetry` instance is built by the SDK autoconfigure module — so exporter, endpoint, sampler, and service name all come from the standard `OTEL_*` environment variables — and injected via Koin into the instrumentation. Spans are produced for:
+
+- **Inbound HTTP** — `KtorServerTelemetry`, the root span per request (extracts incoming trace context)
+- **Outbound HTTP** — `KtorClientTelemetry` on the shared client (e.g. Discord OAuth), propagating context downstream
+- **Database** — R2DBC queries, via `R2dbcTelemetry` wrapping the connection factory
+- **Redis** — Lettuce commands, via `LettuceTelemetry` tracing on `ClientResources`
+- **OpenFGA** — hand-rolled spans in `OpenFgaAuthorizationService` (the SDK uses its own HTTP client and isn't auto-instrumented)
+
+**Span export is off by default.** This template deliberately ships no tracing backend — that choice (Collector, Jaeger, Tempo, a vendor, …) belongs to whatever deploys the app, not here. Spans are created but dropped until you opt in via the standard env vars:
+
+```bash
+OTEL_TRACES_EXPORTER=otlp \
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
+./gradlew run
+```
+
+Point `OTEL_EXPORTER_OTLP_ENDPOINT` at any OTLP receiver. For a quick local view, an all-in-one backend works, e.g. `docker run --rm -p 16686:16686 -p 4317:4317 jaegertracing/all-in-one` (Jaeger UI on `:16686`). Other `OTEL_*` knobs (sampler, resource attributes, headers) are standard SDK autoconfigure settings.
+
+> The OTel library instrumentation artifacts (`opentelemetry-ktor-3.0`, `-r2dbc-1.0`, `-lettuce-5.1`, `-logback-mdc-1.0`) are published only as `-alpha` — that is OpenTelemetry's versioning convention for library instrumentation not yet declared GA, not a stability warning per se. The core SDK/exporter are stable releases.
+
+### Netty engine workaround (`disable.sfg`)
+
+The app runs with `-Dio.ktor.internal.disable.sfg=true` (set in `build.gradle.kts`, the `Dockerfile`, and test tasks). This works around [KTOR-6802](https://youtrack.jetbrains.com/issue/KTOR-6802) (see also OpenTelemetry [#16430](https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/16430) / [#11101](https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/11101)): on the **Netty** engine, Ktor's `SuspendFunctionGun` pipeline optimization leaks the coroutine `ThreadLocal`, so a request handled by a pooled worker thread inherits a previous request's OpenTelemetry span. The result is dropped `SERVER` spans and **independent requests merged into one trace**. Disabling SFG fixes it with no measurable throughput cost (benchmarked on the pure-pipeline path). Alternatives — the CIO/Jetty engines — avoid the bug but change the server engine. `TracingLeakNettyTest` fails if this regresses, and the flag should be removed once KTOR-6802 is fixed upstream.
+
 ## Database Migrations
 
 Managed by [dbmate](https://github.com/amacneil/dbmate). Migration files in `db/migrations/` using timestamped names. Schema dump at `db/schema.sql`, maintained automatically by dbmate.
@@ -151,7 +181,7 @@ Or run the full stack:
 docker compose up
 ```
 
-App starts on `http://localhost:8080`. Swagger UI at `http://localhost:8080/swagger`.
+App starts on `http://localhost:8080`. Swagger UI at `http://localhost:8080/swagger`. Tracing is instrumented but exports nowhere by default — see [Observability](#observability) to send traces to an OTLP backend.
 
 ## Build & Test Commands
 

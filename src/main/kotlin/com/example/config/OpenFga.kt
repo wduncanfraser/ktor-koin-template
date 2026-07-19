@@ -14,7 +14,7 @@ fun Application.openFgaModule(): Module {
 }
 
 fun openFgaModule(config: OpenFgaConfig) = module {
-    single<AuthorizationService> { OpenFgaAuthorizationService(config) }
+    single<AuthorizationService> { OpenFgaAuthorizationService(config, get()) }
 }
 
 /**
