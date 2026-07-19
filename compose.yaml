@@ -13,6 +13,8 @@ services:
       REDIS_HOST: valkey
       OPENFGA_APIURL: http://openfga:8080
       AUTHENTICATION_OAUTH_POSTLOGINREDIRECTURL: http://localhost:80/
+      # Tracing is instrumented but export is off by default (see config/Tracing.kt). To send traces
+      # to an OTLP backend, set OTEL_TRACES_EXPORTER=otlp and OTEL_EXPORTER_OTLP_ENDPOINT here.
     ports:
     - "8080:8080"
     networks:

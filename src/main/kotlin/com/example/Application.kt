@@ -6,6 +6,7 @@ import com.example.config.configureKoin
 import com.example.config.configureMonitoring
 import com.example.config.configureSecurity
 import com.example.config.configureStatusPages
+import com.example.config.configureTracing
 import com.example.config.warmupDatabase
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -27,6 +28,8 @@ fun Application.module() {
 
     configureCors()
     configureKoin()
+    // Install tracing before other logging/telemetry plugins so their work is captured in the span.
+    configureTracing()
     configureMonitoring()
     configureSecurity()
 
