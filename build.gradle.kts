@@ -43,7 +43,7 @@ sourceSets {
 }
 
 // Setup configuration types used for dependencies
-val fabrikt: Configuration by configurations.creating
+val fabrikt: Configuration = configurations.create("fabrikt")
 
 dependencies {
     // Gradle plugins
@@ -105,7 +105,7 @@ kotlin {
 testing {
     suites {
         @Suppress("UnstableApiUsage")
-        val test by getting(JvmTestSuite::class) {
+        val test = getByName<JvmTestSuite>("test") {
             useJUnitJupiter()
 
             dependencies {
@@ -190,12 +190,13 @@ idea {
 tasks {
     val apiFile = "$projectDir/src/main/resources/openapi/todo.yaml"
 
-    val deleteGeneratedApi by registering(Delete::class) {
+    val deleteGeneratedApi = register<Delete>("deleteGeneratedApi") {
         group = "Fabrikt"
+        description = "Delete generated API models and controllers"
         delete("$generationDir/kotlin/com/example/generated/api")
     }
 
-    val generateApi by registering(JavaExec::class) {
+    val generateApi = register<JavaExec>("generateApi") {
         group = "Fabrikt"
         description = "Generate code from OpenAPI specification. Run contracts/build.sh first to rebundle contracts/todo/openapi.yaml → src/main/resources/openapi/todo.yaml after spec changes"
         inputs.files(apiFile)
