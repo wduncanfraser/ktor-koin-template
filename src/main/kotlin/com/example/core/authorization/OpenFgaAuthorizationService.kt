@@ -4,6 +4,7 @@ import com.example.config.OpenFgaConfig
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
+import com.github.michaelbull.result.onErr
 import dev.openfga.sdk.api.client.OpenFgaClient
 import dev.openfga.sdk.api.client.model.ClientCheckRequest
 import dev.openfga.sdk.api.client.model.ClientListObjectsRequest
@@ -21,8 +22,13 @@ import dev.openfga.sdk.errors.ApiException
 import dev.openfga.sdk.errors.FgaInvalidParameterException
 import dev.openfga.sdk.errors.FgaValidationError
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.opentelemetry.api.trace.SpanKind
+import io.opentelemetry.api.trace.StatusCode
+import io.opentelemetry.api.trace.Tracer
+import io.opentelemetry.extension.kotlin.asContextElement
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
@@ -38,7 +44,10 @@ private const val MAX_TUPLES_PER_WRITE = 100
  * the store id and latest authorization model once at startup (see `init`) so later calls don't
  * re-resolve them per request.
  */
-class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationService {
+class OpenFgaAuthorizationService(
+    openFgaConfig: OpenFgaConfig,
+    private val tracer: Tracer,
+) : AuthorizationService {
     private val client: OpenFgaClient
     private val authorizationModelId: String
 
@@ -63,8 +72,8 @@ class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationS
         userId: String,
         permission: Permission,
         resource: AuthorizationResource,
-    ): Result<Unit, AuthorizationError> {
-        return try {
+    ): Result<Unit, AuthorizationError> = traceOperation("openfga.check", resource.toFgaObject(), permission.relation) {
+        try {
             if (checkFga(userId, permission, resource)) {
                 Ok(Unit)
             } else if (permission == Permission.Common.CAN_READ) {
@@ -117,13 +126,14 @@ class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationS
         userId: String,
         permission: Permission,
         resourceType: AuthorizationResourceType,
-    ): Result<List<UUID>, AuthorizationError> {
+    ): Result<List<UUID>, AuthorizationError> =
+        traceOperation("openfga.listObjects", resourceType.toFgaType(), permission.relation) {
         val request = ClientListObjectsRequest()
             .user("user:$userId")
             .relation(permission.relation)
             .type(resourceType.toFgaType())
         val options = ClientListObjectsOptions().authorizationModelId(authorizationModelId)
-        return try {
+        try {
             val objects = client.listObjects(request, options).await().objects
             Ok(objects.map { UUID.fromString(it.substringAfter(':')) })
         } catch (e: ApiException) {
@@ -138,11 +148,13 @@ class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationS
         }
     }
 
-    override suspend fun writeTuples(tuples: List<AuthorizationTuple>): Result<Unit, AuthorizationError> {
+    override suspend fun writeTuples(
+        tuples: List<AuthorizationTuple>
+    ): Result<Unit, AuthorizationError> = traceOperation("openfga.writeTuples") {
         val keys = tuples.map { it.toClientTupleKey() }
         val request = ClientWriteRequest().writes(keys)
         val options = ClientWriteOptions().authorizationModelId(authorizationModelId)
-        return try {
+        try {
             client.write(request, options).await()
             Ok(Unit)
         } catch (e: ApiException) {
@@ -157,11 +169,13 @@ class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationS
         }
     }
 
-    override suspend fun deleteTuples(tuples: List<AuthorizationTuple>): Result<Unit, AuthorizationError> {
+    override suspend fun deleteTuples(
+        tuples: List<AuthorizationTuple>,
+    ): Result<Unit, AuthorizationError> = traceOperation("openfga.deleteTuples") {
         val keys = tuples.map { it.toClientTupleKeyWithoutCondition() }
         val request = ClientWriteRequest().deletes(keys)
         val options = ClientWriteOptions().authorizationModelId(authorizationModelId)
-        return try {
+        try {
             client.write(request, options).await()
             Ok(Unit)
         } catch (e: ApiException) {
@@ -183,8 +197,10 @@ class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationS
      * back, while a partial failure past a chunk boundary can leave the resource half-cleaned until
      * the (idempotent) delete is retried.
      */
-    override suspend fun deleteAllTuplesFor(resource: AuthorizationResource): Result<Unit, AuthorizationError> {
-        return try {
+    override suspend fun deleteAllTuplesFor(
+        resource: AuthorizationResource,
+    ): Result<Unit, AuthorizationError> = traceOperation("openfga.deleteAllTuplesFor", resource.toFgaObject()) {
+        try {
             // Phase 1: structural links pointing AT the resource (its children's parent links) —
             // the large, possibly multi-chunk set, and none of it grants anyone access to the
             // resource itself.
@@ -246,6 +262,42 @@ class OpenFgaAuthorizationService(openFgaConfig: OpenFgaConfig) : AuthorizationS
             .transactionChunkSize(MAX_TUPLES_PER_WRITE)
             .onMissing(WriteRequestDeletes.OnMissingEnum.IGNORE)
         client.write(ClientWriteRequest().deletes(keys), options).await()
+    }
+
+    /**
+     * Wraps an OpenFGA operation in a CLIENT span. The OpenFGA SDK uses its own HTTP client and is
+     * not auto-instrumented, so these spans are created by hand. [asContextElement] makes the span
+     * current across the suspend [block] so any nested work parents under it. Only infrastructure
+     * failures ([AuthorizationError.CheckFailed]/[AuthorizationError.WriteFailed]) mark the span
+     * errored — [AuthorizationError.NotFound]/[AuthorizationError.Forbidden] are normal permission
+     * outcomes, not span errors.
+     */
+    private suspend fun <T> traceOperation(
+        spanName: String,
+        objectRef: String? = null,
+        relation: String? = null,
+        block: suspend () -> Result<T, AuthorizationError>,
+    ): Result<T, AuthorizationError> {
+        val span = tracer.spanBuilder(spanName)
+            .setSpanKind(SpanKind.CLIENT)
+            .setAttribute("rpc.system", "openfga")
+            .apply {
+                objectRef?.let { setAttribute("openfga.object", it) }
+                relation?.let { setAttribute("openfga.relation", it) }
+            }
+            .startSpan()
+        return try {
+            withContext(span.asContextElement()) { block() }.onErr { error ->
+                val cause = (error as? AuthorizationError.CheckFailed)?.t
+                    ?: (error as? AuthorizationError.WriteFailed)?.t
+                if (cause != null) {
+                    span.setStatus(StatusCode.ERROR)
+                    span.recordException(cause)
+                }
+            }
+        } finally {
+            span.end()
+        }
     }
 
 }

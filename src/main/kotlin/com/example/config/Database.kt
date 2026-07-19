@@ -7,6 +7,8 @@ import io.ktor.server.config.property
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Tag
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.instrumentation.r2dbc.v1_0.R2dbcTelemetry
 import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.pool.ConnectionPoolConfiguration
 import io.r2dbc.spi.ConnectionFactories
@@ -43,8 +45,11 @@ fun databaseModule(databaseConfig: DatabaseConfig) = module {
             .option(ConnectionFactoryOptions.PASSWORD, databaseConfig.password)
             .build()
         val connectionFactory = ConnectionFactories.get(options)
+        // Wrap the factory so each query emits a `db.*` client span under the current request span.
+        val tracedConnectionFactory = R2dbcTelemetry.create(get<OpenTelemetry>())
+            .wrapConnectionFactory(connectionFactory, options)
         ConnectionPool(
-            ConnectionPoolConfiguration.builder(connectionFactory)
+            ConnectionPoolConfiguration.builder(tracedConnectionFactory)
                 .initialSize(databaseConfig.poolSize)
                 .maxSize(databaseConfig.poolSize)
                 .build()
