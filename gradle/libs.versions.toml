@@ -1,7 +1,7 @@
 [versions]
 cohort = "2.9.10"
 detekt = "2.0.0-alpha.6"
-fabrikt = "27.6.1"
+fabrikt = "27.8.0"
 jooq = "3.21.7"
 koin = "4.2.2"
 kover = "0.9.9"
