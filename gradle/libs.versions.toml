@@ -2,7 +2,7 @@
 cohort = "2.9.10"
 detekt = "2.0.0-alpha.6"
 fabrikt = "27.8.1"
-jooq = "3.21.7"
+jooq = "3.21.8"
 koin = "4.2.2"
 kover = "0.9.9"
 kotest = "6.2.4"
