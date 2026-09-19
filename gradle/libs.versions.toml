@@ -27,7 +27,7 @@ testcontainers = "2.0.5"
 # they are forced to patched versions via enforcedPlatform/constraints in
 # build.gradle.kts. Declared here so Dependabot keeps them updated going forward.
 jackson = "2.22.2"
-netty = "4.2.17.Final"
+netty = "4.2.18.Final"
 opentelemetry = "1.65.0"
 scram = "3.4"
 
